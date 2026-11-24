@@ -11,6 +11,7 @@
  *     c.value                      current value (exact, also when snapped to a mark)
  *     c.set(v)                     sets the value without calling onChange
  *     c.decorate(segments, marks)  redraws the bar
+ *     Controles.math(element, latex, display)   typesets a formula (used by the whole page)
  *
  * spec:      {id, symbol, name, unit, min, max, step, value, decimals}   (symbol is LaTeX)
  * segments:  [{from, to, kind}]            kind is a CSS class that gives the color
@@ -20,6 +21,15 @@
  */
 (function (root) {
   'use strict';
+
+  /**
+   * Typesets LaTeX into an element with KaTeX (display style if `display` is true).
+   * It goes through katex.renderToString because katex.render refuses to run in a document without a
+   * standards-mode doctype, which is how some viewers embed the page; the string version has no such check.
+   */
+  function math(element, source, display) {
+    element.innerHTML = root.katex.renderToString(source, { throwOnError: false, displayMode: !!display });
+  }
 
   class Control {
     constructor(host, spec, onChange) {
@@ -42,7 +52,7 @@
       this.output = el.querySelector('.valor');
       this.input = el.querySelector('input');
       el.querySelector('.nome').textContent = spec.name;
-      root.katex.render(spec.symbol, el.querySelector('.simbolo'), { throwOnError: false });
+      math(el.querySelector('.simbolo'), spec.symbol);
 
       this.input.min = spec.min; this.input.max = spec.max; this.input.step = spec.step;
       this.input.setAttribute('aria-label', spec.name);
@@ -113,5 +123,5 @@
     }
   }
 
-  root.Controles = { Control };
+  root.Controles = { Control, math };
 })(window);

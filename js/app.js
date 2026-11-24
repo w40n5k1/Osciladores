@@ -169,7 +169,7 @@
   function tex(element, source, display) {
     if (rendered.get(element) === source) return;
     rendered.set(element, source);
-    if (source) window.katex.render(source, element, { throwOnError: false, displayMode: display !== false });
+    if (source) window.Controles.math(element, source, display !== false);
     else element.textContent = '';
   }
 
@@ -181,7 +181,7 @@
     element.textContent = '';
     for (const source of sources) {
       const item = document.createElement('span');
-      window.katex.render(source, item, { throwOnError: false });
+      window.Controles.math(item, source);
       element.appendChild(item);
     }
   }
@@ -313,8 +313,7 @@
         controls[spec.id] = new window.Controles.Control(box, spec, () => { stale = true; });
       }
     }
-    window.katex.render('V(x) = \\tfrac{1}{2}k\\,x^2 + \\tfrac{1}{3}\\lambda_3\\,x^3 + \\tfrac{1}{4}\\lambda_4\\,x^4', $('potencial'),
-      { throwOnError: false });
+    window.Controles.math($('potencial'), 'V(x) = \\tfrac{1}{2}k\\,x^2 + \\tfrac{1}{3}\\lambda_3\\,x^3 + \\tfrac{1}{4}\\lambda_4\\,x^4');
 
     const phase = new G.Phase($('fase')), energy = new G.Energy($('energia')), solution = new G.Solution($('solucao'));
     plots = [phase, energy, solution];
