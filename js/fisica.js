@@ -37,6 +37,7 @@
  *                                  a mass at rest at an equilibrium point
  *   integrate(P, x0, p0, T)      numerical solution by the classical fourth-order Runge-Kutta method
  *   solve(P, x0, p0, T)          the solution the page shows: the closed form if there is one, Runge-Kutta if not
+ *   advance(P, sol, duration)    the continuation of a solution beyond its last sample
  *   steadyState(P)               amplitude and phase lag of the forced linear oscillator
  *   harmonicApproximation(P)     parameters of the linear oscillator that approximates P for small amplitudes
  *   jacobi, ellipticK, ellipticF Jacobi elliptic functions and elliptic integrals of the first kind
@@ -424,7 +425,8 @@
    * with I = inertia(P) and G = drive(P): see the head of the file.
    *
    * dtOut is the spacing of the stored samples and `substeps` the number of Runge-Kutta steps between two of
-   * them: the step is h = dtOut / substeps, 1 ms with the defaults.
+   * them: the step is h = dtOut / substeps, 1 ms with the defaults.  With the option t0 the integration starts
+   * at that instant instead of zero (x0 and p0 are then the state at t0, and the times returned start at t0).
    *
    * Returns {t, x, p, n, dt, escaped, failed}: t, x and p are Float64Arrays of which the first n entries are
    * valid.  If the potential does not confine, the mass can run away to infinity in a finite time: the
@@ -434,6 +436,7 @@
   function integrate(P, x0, p0, T, options) {
     const dtOut = (options && options.dtOut) || 0.005;
     const substeps = (options && options.substeps) || 5;
+    const t0 = (options && options.t0) || 0;
     const nMax = Math.round(T / dtOut) + 1;
     const h = dtOut / substeps, half = h / 2;
     const { k, l3, l4, w } = P, I = inertia(P), G = drive(P);
@@ -443,13 +446,13 @@
 
     const t = new Float64Array(nMax), xs = new Float64Array(nMax), ps = new Float64Array(nMax);
     let x = x0, p = p0, n = 1, escaped = false, failed = false;
-    let f0 = G;                             // external force at the start of the step: G cos(0)
-    xs[0] = x; ps[0] = p;
+    let f0 = forced ? G * Math.cos(w * t0) : 0;       // external force at the start of the step
+    t[0] = t0; xs[0] = x; ps[0] = p;
     for (let i = 1; i < nMax; i++) {
       for (let s = 0; s < substeps; s++) {
         // The four stages: at the start of the step, twice at its middle, and at its end.  The external force
         // at the end of one step is reused at the start of the next.
-        const ts = ((i - 1) * substeps + s) * h;
+        const ts = t0 + ((i - 1) * substeps + s) * h;
         const fm = forced ? G * Math.cos(w * (ts + half)) : 0, f1 = forced ? G * Math.cos(w * (ts + h)) : 0;
         const k1x = p / I, k1p = conservative(x) - friction * p + f0;
         const p2 = p + half * k1p, k2x = p2 / I, k2p = conservative(x + half * k1x) - friction * p2 + fm;
@@ -461,7 +464,7 @@
       }
       if (!isFinite(x) || !isFinite(p)) { escaped = !bounded; failed = bounded; break; }
       if (!bounded && Math.abs(x) > ESCAPE_X) { escaped = true; break; }
-      t[i] = i * dtOut; xs[i] = x; ps[i] = p; n = i + 1;
+      t[i] = t0 + i * dtOut; xs[i] = x; ps[i] = p; n = i + 1;
     }
     return { t, x: xs, p: ps, n, dt: dtOut, escaped, failed };
   }
@@ -485,6 +488,26 @@
   }
 
   /**
+   * Runge-Kutta solution over a time T from the state (x0, p0) at the instant t0, with the step chosen by the
+   * rule of solve(): it starts with `substeps` steps per sample and integrates again with a shorter step while
+   * the motion is too fast for it.  Returns the object of integrate() plus exact = null and step.
+   */
+  function refined(P, x0, p0, T, t0, dtOut, substeps) {
+    const most = Math.max(substeps, Math.min(MAX_SUBSTEPS, Math.floor(MAX_STEPS / Math.round(T / dtOut))));
+    let sol;
+    for (;;) {
+      sol = integrate(P, x0, p0, T, { dtOut, substeps, t0 });
+      const needed = Math.ceil(fastestRate(P, sol) * dtOut / RESOLUTION);
+      const next = Math.min(most, Math.max(needed, sol.failed ? 4 * substeps : 0));
+      if (next <= substeps) break;
+      substeps = next;
+    }
+    sol.exact = null;
+    sol.step = dtOut / substeps;
+    return sol;
+  }
+
+  /**
    * The solution shown by the page, from t = 0 to T, sampled every dtOut (5 ms).
    *
    * If there is a closed form (see analytic) the samples are computed from it.  Otherwise the equation is
@@ -499,25 +522,28 @@
   function solve(P, x0, p0, T, options) {
     const dtOut = (options && options.dtOut) || 0.005;
     const exact = analytic(P, x0, p0);
-    if (exact) {
-      const n = Math.round(T / dtOut) + 1;
-      const t = new Float64Array(n), x = new Float64Array(n), p = new Float64Array(n);
-      const I = inertia(P);
-      for (let i = 0; i < n; i++) { t[i] = i * dtOut; x[i] = exact.x(t[i]); p[i] = I * exact.v(t[i]); }
-      return { t, x, p, n, dt: dtOut, escaped: false, failed: false, exact, step: null };
-    }
-    const most = Math.max(5, Math.min(MAX_SUBSTEPS, Math.floor(MAX_STEPS / Math.round(T / dtOut))));
-    let substeps = 5, sol;
-    for (;;) {
-      sol = integrate(P, x0, p0, T, { dtOut, substeps });
-      const needed = Math.ceil(fastestRate(P, sol) * dtOut / RESOLUTION);
-      const next = Math.min(most, Math.max(needed, sol.failed ? 4 * substeps : 0));
-      if (next <= substeps) break;
-      substeps = next;
-    }
-    sol.exact = null;
-    sol.step = dtOut / substeps;
-    return sol;
+    if (exact) return sampled(P, exact, 0, T, dtOut);
+    return refined(P, x0, p0, T, 0, dtOut, 5);
+  }
+
+  /** Samples of a closed form from t0 to t0 + T, in the format of solve(). */
+  function sampled(P, exact, t0, T, dtOut) {
+    const n = Math.round(T / dtOut) + 1, I = inertia(P);
+    const t = new Float64Array(n), x = new Float64Array(n), p = new Float64Array(n);
+    for (let i = 0; i < n; i++) { t[i] = t0 + i * dtOut; x[i] = exact.x(t[i]); p[i] = I * exact.v(t[i]); }
+    return { t, x, p, n, dt: dtOut, escaped: false, failed: false, exact, step: null };
+  }
+
+  /**
+   * The continuation of a solution: the next `duration` seconds after the last sample of `sol` (an object
+   * returned by solve or by advance), in the same format.  Its first sample is the last one of `sol`.
+   * A closed form is evaluated at the later times; a numerical solution is integrated on from its last state,
+   * with a step no longer than the one it had.
+   */
+  function advance(P, sol, duration) {
+    const last = sol.n - 1;
+    if (sol.exact) return sampled(P, sol.exact, sol.t[last], duration, sol.dt);
+    return refined(P, sol.x[last], sol.p[last], duration, sol.t[last], sol.dt, Math.round(sol.dt / sol.step));
   }
 
   /** Kinetic, potential and total energy along a solution: {K, U, E}, arrays of length sol.n. */
@@ -533,6 +559,6 @@
 
   return {
     inertia, drive, derived, stiffness, harmonicApproximation, potential, force, curvature, energy, equilibria, confining,
-    analytic, steadyState, integrate, solve, energies, jacobi, ellipticK, ellipticF, carlsonRF, ESCAPE_X,
+    analytic, steadyState, integrate, solve, advance, energies, jacobi, ellipticK, ellipticF, carlsonRF, ESCAPE_X,
   };
 });

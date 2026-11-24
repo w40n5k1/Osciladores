@@ -30,6 +30,7 @@
  * The solution shown by the page
  * 13. solve() uses the closed form when there is one and Runge-Kutta otherwise, shortens the step when the
  *     motion is fast, and keeps a mass at rest on an equilibrium point.
+ *     advance() continues a solution: in pieces it gives the same as solve() at once.
  * 14. Every formula the page can show is valid LaTeX for KaTeX.
  * 15. A slider moves over the two ends of its range and the multiples of its step between them, whatever
  *     the ends are: zero is on the grid, and both ends are reached exactly.
@@ -388,6 +389,36 @@ test('solve: the step is shortened when the motion is fast', () => {
   assert.strictEqual(F.solve(with_({ M: 0.1, b: 10, l4: 1 }), 1, 0, 10).step, 5e-4);
   // A pendulum spinning fast: the torque changes at the rate p / (M L^2) = 300 rad/s.
   assert.ok(Math.abs(F.solve(pendulum({ b: 0.01 }), 0, 300, 10).step - 0.005 / 30) < 1e-15);
+});
+
+test('advance: a solution continued in pieces is the solution computed at once', () => {
+  // Forced and damped, so that the phase of the force and the state both have to carry over; none is chaotic.
+  const cases = [['linear, closed form', with_({ b: 0.4, F0: 1, w: 1.7 }), 1, 0, 1e-12],
+    ['undamped resonance, closed form', with_({ F0: 0.5, w: 2 }), 0.3, 0, 1e-11],
+    ['pendulum, closed form', PENDULUM, 2.8, 0, 1e-12],
+    ['anharmonic, Runge-Kutta', with_({ b: 0.3, l3: -0.5, l4: 1, F0: 1, w: 1.3 }), 0.5, 0, 1e-9],
+    ['pendulum, Runge-Kutta', pendulum({ b: 0.5, F0: 2, w: 1.1 }), 1, 0, 1e-9]];
+  for (const [name, P, x0, p0, tolerance] of cases) {
+    const whole = F.solve(P, x0, p0, 45);
+    let piece = F.solve(P, x0, p0, 15);
+    for (let block = 1; block <= 2; block++) {
+      const first = piece.n - 1;
+      piece = F.advance(P, piece, 15);
+      assert.strictEqual(piece.n, 3001, name);
+      assert.ok(Math.abs(piece.t[0] - 15 * block) < 1e-9 && Math.abs(piece.t[piece.n - 1] - 15 * (block + 1)) < 1e-9, name + ': times');
+      assert.strictEqual(piece.exact, whole.exact === null ? null : piece.exact, name);
+      assert.strictEqual(piece.step, whole.step, name + ': step');
+      for (const j of [0, 1, 700, 1999, 3000]) {
+        const i = 3000 * block + j;
+        assert.ok(Math.abs(piece.x[j] - whole.x[i]) < tolerance && Math.abs(piece.p[j] - whole.p[i]) < tolerance,
+          `${name}: block ${block}, sample ${j}: ${piece.x[j] - whole.x[i]}`);
+      }
+      assert.ok(first === 3000);
+    }
+  }
+  // The step of a continuation is never longer than the one before, and is shortened when the motion speeds up.
+  const slow = F.solve(with_({ l4: 5, M: 0.1, k: 20, F0: 5, w: 14.1 }), 0, 0, 5), later = F.advance(with_({ l4: 5, M: 0.1, k: 20, F0: 5, w: 14.1 }), slow, 60);
+  assert.ok(later.step <= slow.step);
 });
 
 test('solve: a mass at rest on an equilibrium point stays there', () => {

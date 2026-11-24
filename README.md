@@ -29,6 +29,10 @@ funciona sem internet.
   direito, o potencial *V*(*x*) no intervalo de *x* do diagrama, com a posição atual, o nível da energia total e
   a energia cinética (o segmento vertical entre os dois).
 - **Tempo**: botão de reproduzir e pausar, e a barra do instante; clicar no «0» da barra recomeça o movimento.
+  Com «tempo infinito» marcado, o movimento continua além da duração: quando o cursor chega ao fim, o trecho
+  mostrado avança um quarto da duração (o quarto seguinte é calculado a partir do último estado e o mais antigo
+  é descartado). A página guarda sempre os últimos *T* segundos, 120 s no máximo; a marca «↺ 0» recomeça de
+  *t* = 0. Mudar um parâmetro também recomeça de *t* = 0, pois as condições iniciais valem nesse instante.
 - **Equação de movimento e solução**: a equação diferencial com os termos presentes, em símbolos e com os
   valores atuais; o gráfico de *x*(*t*), ou θ(*t*); e, quando existe, a fórmula da solução com suas constantes.
 - **Deduções** e **Referências**: dois painéis no fim da página, um sobre o outro, fechados até que se clique no título.
@@ -151,7 +155,7 @@ início de `js/app.js`. Um exemplo novo é uma linha a mais nessa lista.
 
     node tests/teste_fisica.js
 
-Precisa apenas do node. São 19 testes. Verificam que: as fórmulas do oscilador linear satisfazem a equação de
+Precisa apenas do node. São 20 testes. Verificam que: as fórmulas do oscilador linear satisfazem a equação de
 movimento e as condições iniciais, e a integração numérica coincide com elas em todos os regimes, livres e
 forçados; a amplitude estacionária é máxima em ω_R e a potência absorvida cai à metade em ω₋ e ω₊; os valores
 críticos de cada parâmetro; a energia se conserva sem atrito nem força externa, também com termos anarmônicos; o
@@ -160,7 +164,8 @@ amplitude segue a correção de Landau e Lifshitz (§28); os equilíbrios e sua 
 do potencial cúbico; as funções elípticas coincidem com a quadratura direta; a solução exata do pêndulo satisfaz
 a equação, conserva a energia e coincide com a integração numérica na oscilação, na rotação e na separatriz; as
 equações em θ e *p*_θ, com atrito e força externa, são a segunda lei de Newton ao longo da trajetória; o
-período do pêndulo e seu limite harmônico; o passo é reduzido quando o movimento é rápido; as barras percorrem
+período do pêndulo e seu limite harmônico; o passo é reduzido quando o movimento é rápido; uma solução
+continuada em pedaços coincide com a calculada de uma vez; as barras percorrem
 os extremos do intervalo e os múltiplos do passo; e todas as fórmulas exibidas são LaTeX válido.
 
 Os testes cobrem o modelo e as fórmulas. A página em si (gráficos, controles) não tem testes automáticos.

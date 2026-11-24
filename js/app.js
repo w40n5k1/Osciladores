@@ -10,6 +10,7 @@
  *   GROUPS       the controls: symbol, range, step and default value of each, and the caption of each group
  *   EXAMPLES     the configurations offered in the "Exemplos" menu
  *   compute()    builds the model (solution, energies, equilibria, ranges of the plots) from the controls
+ *   extend()     motion without end: moves the stretch of solution held in the model forward in time
  *   syncRanges() makes the thin sliders and the ranges of x0 and p0 follow the phase diagram
  *   decorate()   colored segments and marks of the bars: damping regimes, resonance, shape of the potential
  *   formulas()   equation of motion and solution, rendered by KaTeX; legends; method of computation
@@ -120,6 +121,7 @@
     components: true,                       // draw the two terms of the forced linear solution
     approx: false,                          // draw the harmonic approximation of a nonlinear system
     fit: true,                              // the phase diagram rescales to fit the trajectory
+    endless: false,                         // the motion runs on beyond the duration: see extend()
     frozen: null,                           // {xr, pr}: ranges held while the initial condition is dragged
   };
   let timeBar = null;
@@ -165,26 +167,40 @@
   /**
    * Range [lower, upper] of the x(t) plot, from the first `count` samples: symmetric about zero unless x
    * stays far to one side.  Positions beyond `cut` (the edge of what is shown of an escaping mass) count as cut.
+   * With `drifting` (the angle of a pendulum, which accumulates turn after turn), samples that are farther
+   * from zero than their own spread get a range that encloses them alone, between multiples of a round step.
    */
-  function rangeOfX(sol, count, cut) {
-    let lo = 0, hi = 0;
+  function rangeOfX(sol, count, cut, drifting) {
+    let lo = Infinity, hi = -Infinity;
     for (let i = 0; i < count; i++) { lo = Math.min(lo, sol.x[i]); hi = Math.max(hi, sol.x[i]); }
+    const spread = Math.max(hi - lo, 0.1);
+    if (drifting && lo * hi > 0 && Math.min(Math.abs(lo), Math.abs(hi)) > spread) {
+      const step = G.niceStep(spread, 5);
+      return [Math.floor((lo - 0.04 * spread) / step) * step, Math.ceil((hi + 0.04 * spread) / step) * step];
+    }
+    lo = Math.min(lo, 0); hi = Math.max(hi, 0);
     const end = extreme => (extreme >= cut ? cut : extreme > 0 ? G.niceCeil(1.04 * extreme) : 0);
     const up = end(hi), down = end(-lo), most = Math.max(up, down, 0.1);
     return Math.min(up, down) > 0.25 * most ? [-most, most] : [down ? -down : -0.04 * most, up ? up : 0.04 * most];
   }
 
-  /** Builds the model from the values of the controls. */
+  /** The coordinate reduced to what the phase diagram shows: for the pendulum, the angle in (-pi, pi]. */
+  function reduced(x) {
+    const turn = 2 * Math.PI;
+    return state.system !== 'pendulum' || Math.abs(x) <= turn / 2 ? x : x - turn * Math.round(x / turn);
+  }
+
+  /** Builds the model from the values of the controls: the solution from t = 0 over the chosen duration. */
   function compute() {
-    const P = { system: state.system }, pendulum = state.system === 'pendulum';
+    const P = { system: state.system };
     for (const id of ['M', 'k', 'L', 'g', 'b', 'l3', 'l4', 'F0', 'w']) P[id] = controls[id].value;
     const x0 = initial()[0].value, p0 = initial()[1].value, T = controls.T.value;
     const sol = F.solve(P, x0, p0, T), D = F.derived(P);
     const before = model && model.P.system === P.system ? model.view : null;
     model = {
-      P, D, x0, p0, T, sol,
+      P, D, x0, p0, T,
+      x0w: reduced(x0),
       names: NAMES[state.system],
-      en: F.energies(P, sol),
       an: sol.exact,
       approx: D.harmonic ? null : F.analytic(F.harmonicApproximation(P), x0, p0),
       steady: F.steadyState(P),
@@ -194,14 +210,28 @@
       tau: ARROW_TIME / D.w0,
       index: 0,
     };
+    show(sol, before);
+    // A cursor left beyond the new solution: back to the start if the motion runs without end, else to the end.
+    if (state.t > model.tEnd) state.t = state.endless ? 0 : model.tEnd;
+  }
+
+  /**
+   * Puts a stretch of solution into the model and derives what the plots need from it: energies, the
+   * coordinate as drawn, the ranges of the plots, the interval of time shown.  `sol` is the solution from
+   * t = 0 (see compute) or a later stretch of it (see extend); `before` holds the ranges {xr, pr} of the phase
+   * diagram until now, or null.
+   */
+  function show(sol, before) {
+    const { P, T } = model, pendulum = P.system === 'pendulum';
+    model.sol = sol;
+    model.en = F.energies(P, sol);
 
     // Coordinate as drawn in the phase diagram: for the pendulum, the angle reduced to one turn, (-pi, pi].
     model.wrap = pendulum;
     model.xw = sol.x;
     if (pendulum) {
-      const turn = 2 * Math.PI;
       model.xw = new Float64Array(sol.n);
-      for (let i = 0; i < sol.n; i++) model.xw[i] = Math.abs(sol.x[i]) <= turn / 2 ? sol.x[i] : sol.x[i] - turn * Math.round(sol.x[i] / turn);
+      for (let i = 0; i < sol.n; i++) model.xw[i] = reduced(sol.x[i]);
     }
 
     // If the mass escapes, the trajectory is unbounded.  The diagram then reaches 1.5 times the distance of
@@ -211,7 +241,7 @@
     let reach = Infinity;
     if (sol.escaped) {
       const barriers = model.eq.filter(e => !e.stable).map(e => Math.abs(e.x));
-      reach = Math.max(1.5 * Math.max.apply(null, barriers), 1.5 * Math.abs(x0), 0.1);
+      reach = Math.max(1.5 * Math.max.apply(null, barriers), 1.5 * Math.abs(sol.x[0]), 0.1);
     }
 
     // Ranges of the phase diagram: held while the initial condition is dragged, so that the point follows
@@ -227,13 +257,31 @@
     // axis goes on to the instant at which x reaches infinity.
     const cut = sol.escaped ? Math.max(view.xr, reach) : Infinity;
     view.nView = sol.escaped ? Math.min(sol.n, lastInside(sol, cut) + 2) : sol.n;
+    model.tStart = sol.t[0];
     model.tEscape = sol.escaped ? sol.t[sol.n - 1] : null;
     model.tEnd = sol.t[view.nView - 1];
-    model.tAxis = model.tEscape === null ? T : 1.03 * model.tEscape;
-    model.xRange = rangeOfX(sol, view.nView, cut);
+    model.tRange = [model.tStart, model.tStart + (model.tEscape === null ? T : 1.03 * (model.tEscape - model.tStart))];
+    model.xRange = rangeOfX(sol, view.nView, cut, pendulum);
 
-    state.t = Math.min(state.t, model.tEnd);
-    timeBar.setRange(0, Math.max(model.tEnd, 0.01), 0.01, 2);
+    // The time bar covers what is shown.  Its mark is the zero of time; once the stretch shown no longer
+    // starts at zero the mark sits at its left end, and clicking it still restarts the motion from t = 0.
+    timeBar.setRange(model.tStart, Math.max(model.tEnd, model.tStart + 0.01), 0.01, 2);
+    timeBar.decorate([], [{ at: model.tStart, label: model.tStart === 0 ? '0' : '↺ 0', snap: model.tStart === 0 }]);
+  }
+
+  /** True if the motion can be computed beyond the end of what is shown. */
+  const extendable = () => !model.sol.escaped && !model.sol.failed;
+
+  /**
+   * Motion without end: moves the stretch of solution shown forward by a quarter of its duration.  The next
+   * quarter is computed from the last state (Fisica.advance) and the oldest quarter is discarded, so that the
+   * model always holds the same number of samples: the last `duração` seconds, 120 s at most.
+   */
+  function extend() {
+    const old = model.sol, next = F.advance(model.P, old, model.T / 4), added = next.n - 1, kept = old.n - added;
+    const join = (before, after) => { const out = new Float64Array(old.n); out.set(before.subarray(added, old.n)); out.set(after.subarray(1, next.n), kept); return out; };
+    show({ t: join(old.t, next.t), x: join(old.x, next.x), p: join(old.p, next.p), n: old.n, dt: old.dt,
+      escaped: next.escaped, failed: next.failed, exact: old.exact, step: next.step }, model.view);
   }
 
   /** Gives a control of an initial condition the range -a to a, with a step of about 1/240 of it. */
@@ -397,9 +445,17 @@
 
   let lastTime = null;
   function tick(now) {
+    let moved = false;                      // the stretch of solution shown moved forward (motion without end)
     if (state.playing && lastTime !== null && model) {
       state.t += Math.min(0.1, (now - lastTime) / 1000) * state.speed;
-      if (state.t >= model.tEnd) { state.t = model.tEnd; setPlaying(false); }
+      if (state.t >= model.tEnd) {
+        if (state.endless && !stale && extendable()) {
+          while (state.t >= model.tEnd && extendable()) extend();
+          syncRanges(); formulas();
+          moved = true;
+        }
+        if (state.t >= model.tEnd) { state.t = model.tEnd; setPlaying(false); }
+      }
       redraw = true;
     }
     lastTime = now;
@@ -412,10 +468,10 @@
       decorate();
       formulas();
     }
-    if (stale || resized) { for (const plot of plots) plot.render(model); redraw = true; }
+    if (stale || resized || moved) { for (const plot of plots) plot.render(model); redraw = true; }
     stale = false;
     if (redraw) {
-      model.index = Math.min(Math.round(state.t / model.sol.dt), model.sol.n - 1);
+      model.index = Math.max(0, Math.min(Math.round((state.t - model.tStart) / model.sol.dt), model.sol.n - 1));
       for (const plot of plots) plot.update(model);
       readout();
       if (!timeBar.dragging) timeBar.set(state.t);
@@ -456,7 +512,7 @@
   function dragTime(plot) {
     const canvas = plot.area.canvas;
     let dragging = false, wasPlaying = false;
-    const place = event => { state.t = Math.min(model.tEnd, Math.max(0, plot.area.at(event).x)); redraw = true; };
+    const place = event => { state.t = Math.min(model.tEnd, Math.max(model.tStart, plot.area.at(event).x)); redraw = true; };
     canvas.addEventListener('pointerdown', event => {
       canvas.setPointerCapture(event.pointerId);
       dragging = true; wasPlaying = state.playing; setPlaying(false);
@@ -559,10 +615,14 @@
       format: v => names().pText + ' de −' + plain(v) + ' a ' + plain(v) + ' ' + names().pUnit, onChange: byHand });
     $('ajustar').addEventListener('change', event => { state.fit = event.target.checked; stale = true; });
 
-    // Time bar: dragging it moves the cursor; clicking its zero restarts the motion.
+    // Time bar: dragging it moves the cursor; clicking its zero restarts the motion.  (Its range and mark: see show.)
     timeBar = new C.Control($('tempoBarra'), { id: 't', symbol: 't', name: 'instante', unit: 's', min: 0, max: 30, step: 0.01, value: 0, decimals: 2 },
-      (control, origin) => { state.t = control.value; setPlaying(origin === 'mark'); redraw = true; });
-    timeBar.decorate([], [{ at: 0, label: '0', snap: true }]);
+      (control, origin) => {
+        if (origin === 'mark') { state.t = 0; stale = stale || model.tStart > 0; }      // back to t = 0, recomputing if it is no longer held
+        else state.t = control.value;
+        setPlaying(origin === 'mark'); redraw = true;
+      });
+    $('infinito').addEventListener('change', event => { state.endless = event.target.checked; if (state.endless && state.t >= model.tEnd) setPlaying(true); });
 
     const menu = $('exemplos');
     for (const [label, system] of [['Oscilador', 'oscillator'], ['Pêndulo', 'pendulum']]) {
@@ -573,7 +633,7 @@
     }
     menu.addEventListener('change', event => applyExample(+event.target.value));
     $('tocar').addEventListener('click', () => {
-      if (!state.playing && state.t >= model.tEnd) state.t = 0;
+      if (!state.playing && state.t >= model.tEnd) state.t = model.tStart;
       setPlaying(!state.playing); redraw = true;
     });
     $('velocidade').addEventListener('change', event => { state.speed = +event.target.value; });

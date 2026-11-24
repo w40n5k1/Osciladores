@@ -17,7 +17,7 @@
  *   x0, p0, T     initial conditions and duration
  *   names         how the coordinate and its momentum are written: {q, p} axis labels [symbol, unit, subscript],
  *                 qUnit, and V, the label of the potential (the coordinate is x, or theta for the pendulum)
- *   sol, en       the solution {t, x, p, n, dt, escaped, exact, step} and its energies {K, U, E}
+ *   sol, en       the stretch of solution shown {t, x, p, n, dt, escaped, exact, step} and its energies {K, U, E}
  *   an            closed-form solution used for the curves (sol.exact), or null
  *   approx        closed form of the harmonic approximation of a nonlinear system, or null
  *   steady        steady state of the forced linear oscillator, or null
@@ -27,7 +27,8 @@
  *   xw, wrap      positions as drawn in the phase diagram: for the pendulum, x reduced to one turn
  *                 (-pi L, pi L], and wrap = true; otherwise sol.x itself
  *   xRange        [lower, upper] of the x(t) plot
- *   tAxis         end of the time axis
+ *   tStart, tRange  first instant held in sol (zero, unless the motion runs without end); [first, last] instant of the time axes
+ *   x0w           initial coordinate as drawn in the phase diagram
  *   tEnd, tEscape last instant the cursor can reach; instant at which an escaping mass reaches infinity, or null
  *   tau           time (s) over which the arrows of the phase diagram show the displacement
  *   index         index of the sample under the time cursor
@@ -346,7 +347,7 @@
         ctx.strokeStyle = css('--tinta'); ctx.lineWidth = 1.5; ctx.stroke();
       }
       // Initial condition: a ring, which can be dragged.
-      ctx.beginPath(); ctx.arc(fr.X(model.xw[0]), fr.Y(model.p0), 6, 0, 2 * Math.PI);
+      ctx.beginPath(); ctx.arc(fr.X(model.x0w), fr.Y(model.p0), 6, 0, 2 * Math.PI);
       ctx.strokeStyle = css('--serie-1'); ctx.lineWidth = 2; ctx.stroke();
       ctx.restore();
     }
@@ -420,7 +421,7 @@
 
     render(model) {
       const fr = this.area, { sol, en, view } = model;
-      fr.x = [0, model.tAxis];
+      fr.x = model.tRange;
       const box = this.inset = this.layoutInset(model);
 
       // The energy axis always includes zero; its ends are round numbers just beyond the extremes.  The upper
@@ -501,7 +502,7 @@
 
     render(model) {
       const fr = this.area, { sol, an, view } = model;
-      fr.x = [0, model.tAxis]; fr.y = model.xRange;
+      fr.x = model.tRange; fr.y = model.xRange;
       const ctx = fr.begin();
       fr.axes(ctx, ['t', ' (s)'], model.names.q, true);
       fr.clip(ctx);
