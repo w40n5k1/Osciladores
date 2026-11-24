@@ -79,7 +79,8 @@
 
   /**
    * Each example lists only what differs from the first one.  x0 and p0 are the initial coordinate and momentum:
-   * for the pendulum, the angle (rad) and the angular momentum (kg m^2/s).  The last one is quoted in the derivations.
+   * for the pendulum, the angle (rad) and the angular momentum (kg m^2/s).  The last two are quoted in section 8
+   * of the derivations.
    */
   const ROOT_G = Math.sqrt(9.81);
   const EXAMPLES = [
@@ -100,8 +101,11 @@
     { name: 'Pêndulo: sobre a separatriz', system: 'pendulum', b: 0, x0: 0, p0: 2 * ROOT_G, T: 10 },
     { name: 'Pêndulo: rotação', system: 'pendulum', b: 0, x0: 0, p0: 7, T: 10 },
     { name: 'Pêndulo amortecido, lançado em rotação', system: 'pendulum', b: 0.3, x0: 0, p0: 14, T: 30 },
-    // Baker & Gollub: theta'' + theta'/q + sin(theta) = a cos(w_D tau), with q = 2, a = 1.5, w_D = 2/3, tau = w0 t:
-    // b / M = w0 / q,  F0 = a M g,  w = w_D w0  (L = 1 m).
+    // The two chaotic examples, in the form  theta'' + theta'/q + sin(theta) = a cos(w_D tau),  tau = w0 t:
+    // b / M = w0 / q,  F0 = a M g,  w = w_D w0  (L = 1 m), both with w_D = 2/3.
+    // Without friction, a = 0.1, launched at 0.95 of the angular momentum of the separatrix, inside the chaotic layer.
+    { name: 'Pêndulo forçado, sem amortecimento: camada caótica', system: 'pendulum', M: 0.3, b: 0, F0: 0.1 * 0.3 * 9.81, w: 2 * ROOT_G / 3, x0: 0, p0: 0.95 * 2 * 0.3 * ROOT_G, T: 120 },
+    // With friction: Baker & Gollub, q = 2 and a = 1.5.
     { name: 'Pêndulo amortecido e forçado: caos', system: 'pendulum', M: 0.3, b: 0.3 * ROOT_G / 2, F0: 1.5 * 0.3 * 9.81, w: 2 * ROOT_G / 3, x0: 0, T: 120 },
   ];
 

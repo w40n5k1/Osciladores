@@ -109,7 +109,7 @@
         <li><i class="linha grossa serie-1"></i><span id="nomeCurva">analítica</span></li>
         <li id="legTransiente"><i class="linha serie-2"></i><span id="nomeHomogenea">transiente</span></li>
         <li id="legParticular"><i class="linha serie-3"></i><span id="nomeParticular">regime estacionário</span></li>
-        <li id="opcaoComponentes"><label><input type="checkbox" id="componentes" checked> mostrar os dois termos</label></li>
+        <li id="opcaoComponentes"><label><input type="checkbox" id="componentes" checked> mostrar os dois termos componentes</label></li>
         <li id="opcaoAproximacao"><label><input type="checkbox" id="aproximacao"><i class="linha tracejada tinta"></i>aproximação harmônica</label></li>
       </ul>
     </div>
@@ -181,7 +181,7 @@
       <p>A amplitude cresce linearmente com o tempo e não há regime estacionário. (Verificação direta: <span class="m">\ddot x_p + \omega_0^2x_p = f\cos(\omega_0t)</span>.) Como <span class="m">x_p(0) = \dot x_p(0) = 0</span>, as constantes de <span class="m">x_h</span> são <span class="m">C_1 = x_0</span> e <span class="m">C_2 = v_0/\omega_0</span>.</p>
 
       <h3>6. Termos anarmônicos</h3>
-      <p>Com <span class="m">\lambda_3</span> ou <span class="m">\lambda_4</span> diferente de zero a equação não é linear e não tem solução em funções elementares; a página a integra numericamente (seção 8). Alguns resultados seguem sem resolvê-la.</p>
+      <p>Com <span class="m">\lambda_3</span> ou <span class="m">\lambda_4</span> diferente de zero a equação não é linear e não tem solução em funções elementares; a página a integra numericamente (seção 9). Alguns resultados seguem sem resolvê-la.</p>
       <p><b>Equilíbrios.</b> São os zeros de <span class="m">dV/dx = x\,(k + \lambda_3x + \lambda_4x^2)</span>: <span class="m">x = 0</span>, sempre estável (<span class="m">k \gt 0</span>), e as raízes reais de <span class="m">k + \lambda_3x + \lambda_4x^2 = 0</span>. É estável o ponto em que <span class="m">d^2V/dx^2 \gt 0</span> (mínimo de <span class="m">V</span>). Pelos pontos instáveis passa a separatriz, a curva de nível <span class="m">H = V(x_{\text{inst}})</span>. Daí os três regimes indicados nas barras de <span class="m">\lambda_3</span> e <span class="m">\lambda_4</span>:</p>
       <ul>
         <li><b>estável</b>: <span class="m">\lambda_4 \gt 0</span> e <span class="m">\lambda_3^2 \lt 4k\lambda_4</span>. O único equilíbrio é <span class="m">x = 0</span> e o potencial confina a massa.</li>
@@ -220,9 +220,56 @@
       <p><i>Separatriz</i> (<span class="m">\kappa = 1</span>). Com <span class="m">E = 2MgL</span> a integral é elementar:</p>
       <div class="m">\operatorname{sen}\frac{\theta}{2} = \tanh(\pm\omega_0t + u_0), \qquad \dot\theta = \pm2\,\omega_0\operatorname{sech}(\pm\omega_0t + u_0).</div>
       <p>O pêndulo se aproxima da posição invertida sem nunca alcançá-la; de fato, <span class="m">K(\kappa) \to \infty</span> quando <span class="m">\kappa \to 1</span>.</p>
-      <p>Com atrito ou força externa não há solução fechada, e a equação é integrada numericamente. O pêndulo amortecido e forçado pode ter movimento caótico: é o último exemplo do menu.</p>
+      <p>Com atrito ou força externa não há solução fechada, e a equação é integrada numericamente. O pêndulo forçado pode ter movimento caótico, com ou sem atrito: é o assunto da seção 8 e dos dois últimos exemplos do menu.</p>
 
-      <h3>8. Cálculo das curvas</h3>
+      <h3>8. Caminhos para o caos</h3>
+      <p><b>Forma adimensional.</b> Dividindo a equação do pêndulo por <span class="m">MgL = ML^2\omega_0^2</span> e medindo o tempo em <span class="m">\tau = \omega_0t</span> (a linha indica derivada em relação a <span class="m">\tau</span>),</p>
+      <div class="m">\theta'' + \frac{\theta'}{q} + \operatorname{sen}\theta = a\cos(\omega_D\tau), \qquad a = \frac{F_0}{Mg}, \quad q = \frac{M\omega_0}{b} = \frac{\omega_0}{2\gamma}, \quad \omega_D = \frac{\omega}{\omega_0}.</div>
+      <p>Restam três parâmetros: <span class="m">a</span>, a amplitude da força em unidades do peso; <span class="m">q</span>, que é o fator de qualidade <span class="m">Q</span>; e <span class="m">\omega_D</span>, a frequência da força em unidades de <span class="m">\omega_0</span>. A energia em unidades de <span class="m">MgL</span> é <span class="m">h = \tfrac12\theta'^2 + 1 - \cos\theta</span>, e a separatriz está em <span class="m">h = 2</span>. Os resultados numéricos desta seção são para <span class="m">\omega_D = 2/3</span> e foram obtidos por Runge–Kutta de quarta ordem.</p>
+      <p><b>O que é necessário.</b> Sem força externa o estado é o ponto <span class="m">(\theta, \theta')</span> e as trajetórias não se cruzam no plano: só podem terminar num equilíbrio, numa órbita fechada ou numa separatriz (teorema de Poincaré–Bendixson). Com a força, o estado inclui a fase <span class="m">\omega_D\tau</span>: três dimensões, o mínimo para o caos. É preciso também que a equação não seja linear: no oscilador linear, a diferença entre duas soluções obedece à equação homogênea, e portanto decai (<span class="m">b \gt 0</span>) ou mantém a amplitude (<span class="m">b = 0</span>), sem nunca crescer exponencialmente. O atrito não é necessário: ele decide de que tipo é o caos.</p>
+      <p><b>Onde o caos nasce: a separatriz.</b> A energia varia segundo <span class="m">dh/d\tau = -\theta'^2/q + a\cos(\omega_D\tau)\,\theta'</span> (seção 1). Em primeira ordem em <span class="m">a</span> e <span class="m">1/q</span>, a variação em uma passagem ao longo da separatriz, <span class="m">\theta' = \pm2\operatorname{sech}\tau</span> (seção 7), com a força na fase <span class="m">\omega_D\tau_0</span> quando o pêndulo passa pelo ponto mais baixo, é</p>
+      <div class="m">\Delta h(\tau_0) = \int_{-\infty}^{\infty}\left[-\frac{\theta'^2}{q} + a\cos\big(\omega_D(\tau+\tau_0)\big)\,\theta'\right]d\tau = -\frac{8}{q} \pm W\cos(\omega_D\tau_0), \qquad W = 2\pi a\operatorname{sech}\!\left(\frac{\pi\omega_D}{2}\right),</div>
+      <p>pois <span class="m">\int 4\operatorname{sech}^2\tau\,d\tau = 8</span> e <span class="m">\int \operatorname{sech}\tau\cos(\omega_D\tau)\,d\tau = \pi\operatorname{sech}(\pi\omega_D/2)</span>. É a função de Melnikov. Se <span class="m">\Delta h</span> muda de sinal com <span class="m">\tau_0</span>, um pêndulo que chega perto da posição invertida passa por ela ou volta conforme a fase da força: as curvas que chegam à posição invertida e as que dela saem se cruzam transversalmente, e daí decorre (teorema de Smale–Birkhoff) um conjunto invariante com dependência sensível das condições iniciais. A condição é</p>
+      <div class="m">a \gt a_c = \frac{4}{\pi q}\cosh\!\left(\frac{\pi\omega_D}{2}\right), \qquad\text{isto é,}\qquad F_0 \gt \frac{4}{\pi}\,b\sqrt{gL}\,\cosh\!\left(\frac{\pi\omega}{2\omega_0}\right),</div>
+      <p>que não depende da massa. É uma condição para o cruzamento, não para um atrator caótico.</p>
+      <p><b>Sem atrito</b> (<span class="m">b = 0</span>). Então <span class="m">a_c = 0</span>: há caos para qualquer força, por menor que seja. A cada passagem a energia recebe um impulso de até <span class="m">W</span>, e o tempo até a passagem seguinte diverge na separatriz como <span class="m">\ln(32/|h-2|)</span> (de <span class="m">K(\kappa) \simeq \ln(4/\sqrt{1-\kappa^2})</span> para <span class="m">\kappa \to 1</span>). A fase da força na passagem seguinte muda então de <span class="m">\omega_DW/|h-2|</span> quando a energia muda de <span class="m">W</span>, e deixa de ser previsível onde essa mudança é da ordem de 1 ou maior:</p>
+      <div class="m">|h - 2| \lesssim \omega_D\,W .</div>
+      <p>É a camada estocástica em torno da separatriz (Chirikov), em que o pêndulo alterna, sem regra, entre oscilar e girar num sentido ou no outro. A estimativa dá a ordem de grandeza; na varredura abaixo a camada é mais larga do lado de dentro da separatriz. Fora dela a maior parte das órbitas continua regular (teorema KAM), e em torno de cada ressonância entre o movimento e a força há uma cadeia de ilhas com a sua própria camada. Com <span class="m">a</span> crescente as camadas se alargam e se fundem, e o caos toma o espaço de fase. Não há atrator: a área do espaço de fase se conserva, movimento regular e caótico coexistem para sempre, e qual deles ocorre depende da condição inicial.</p>
+      <p>Varredura numérica: pêndulo lançado do ponto mais baixo com velocidade angular <span class="m">\theta'_0</span> (em unidades de <span class="m">\omega_0</span>; a separatriz é <span class="m">\theta'_0 = 2</span>), de 0,025 a 3,5 em passos de 0,025. Conta como caótica a condição inicial cujo expoente de Lyapunov, medido em 500 períodos da força, passa de <span class="m">0{,}012\,\omega_0</span>.</p>
+      <div class="tabela"><table>
+        <thead><tr><th><span class="m">a</span></th><th><span class="m">\omega_DW</span></th><th>condições iniciais caóticas, <span class="m">\theta'_0</span></th><th>fração</th></tr></thead>
+        <tbody>
+          <tr><td>0,01</td><td>0,026</td><td>só 2,000 (camada mais fina que o passo)</td><td>0,01</td></tr>
+          <tr><td>0,03</td><td>0,079</td><td>1,60 a 1,73; 1,78; 1,88 a 2,03</td><td>0,10</td></tr>
+          <tr><td>0,1</td><td>0,26</td><td>1,33 a 2,15</td><td>0,24</td></tr>
+          <tr><td>0,2</td><td>0,52</td><td>0,95 a 2,25</td><td>0,38</td></tr>
+          <tr><td>0,3</td><td>0,79</td><td>0,43 a 2,50; 2,55 a 2,58</td><td>0,61</td></tr>
+          <tr><td>0,5</td><td>1,31</td><td>0,03 a 2,75</td><td>0,79</td></tr>
+          <tr><td>0,8</td><td>2,09</td><td>0,03 a 3,25, com uma ilha regular em 2,33 a 2,40</td><td>0,90</td></tr>
+          <tr><td>1,2</td><td>3,14</td><td>todas</td><td>1,00</td></tr>
+        </tbody>
+      </table></div>
+      <p>As órbitas periódicas estáveis no centro das ilhas também perdem a estabilidade por duplicações de período sucessivas, mas, conservando-se a área, a razão entre intervalos sucessivos do parâmetro tende a 8,721, e não a 4,669 (Greene, MacKay, Vivaldi e Feigenbaum; resultado citado, não verificado aqui).</p>
+      <p><b>Com atrito</b> (<span class="m">b \gt 0</span>). A área do espaço de fase se contrai como <span class="m">e^{-\tau/q}</span>, e todo movimento termina num atrator. Abaixo de <span class="m">a_c</span> as curvas da posição invertida não se cruzam (nessa ordem de aproximação). Acima, o conjunto caótico existe mas em geral não atrai: o movimento é irregular por algum tempo (caos transiente) e depois cai num atrator periódico, e a fronteira entre as bacias de atratores diferentes é fractal. Um atrator caótico surge por outro caminho: variando um só parâmetro, um atrator periódico perde a estabilidade e dá lugar a outro com o dobro do período, e este a outro, de período 4, 8, 16, …, em valores do parâmetro que se acumulam num limite finito, com a razão entre intervalos sucessivos tendendo a <span class="m">\delta = 4{,}669\ldots</span> (Feigenbaum). Além do limite, o atrator é caótico, com faixas (janelas) em que volta a ser periódico.</p>
+      <p>Varredura numérica em <span class="m">a</span>, com <span class="m">q = 2</span> (os valores de Baker e Gollub; <span class="m">a_c = 1{,}019</span>). O período do atrator, em períodos da força, é lido na seção estroboscópica (o estado a cada período da força), depois de 600 períodos de transiente, partindo sempre de <span class="m">\theta = 0{,}1</span>, <span class="m">\theta' = 0</span>. Caos: expoente de Lyapunov acima de <span class="m">0{,}01\,\omega_0</span>.</p>
+      <div class="tabela"><table>
+        <thead><tr><th><span class="m">a</span></th><th>atrator</th></tr></thead>
+        <tbody>
+          <tr><td>até 1,066</td><td>período 1</td></tr>
+          <tr><td>1,068 a 1,078</td><td>período 2</td></tr>
+          <tr><td>1,080 a 1,14</td><td>período 3, com faixas caóticas entre 1,098 e 1,108</td></tr>
+          <tr><td>1,16 a 1,28</td><td>caos, com janelas periódicas (em 1,223, período 3)</td></tr>
+          <tr><td>1,30 a 1,424</td><td>período 1</td></tr>
+          <tr><td>1,426 a 1,458</td><td>período 2</td></tr>
+          <tr><td>1,460 a 1,476</td><td>período 4</td></tr>
+          <tr><td>1,478 a 1,495</td><td>faixas caóticas e janelas periódicas</td></tr>
+          <tr><td>1,496 a 1,504</td><td>caos (a varredura termina aqui)</td></tr>
+        </tbody>
+      </table></div>
+      <p>Há portanto duas entradas no caos por duplicação de período, perto de 1,07 e de 1,43 a 1,48. A varredura não resolve a cascata além do período 4, e por isso não mede <span class="m">\delta</span>; e, com uma só condição inicial, não mostra atratores que coexistam com o encontrado.</p>
+      <p><b>Na página.</b> Os dois últimos exemplos do menu são esses dois casos. No exemplo sem atrito, <span class="m">a = 0{,}1</span> e o pêndulo parte dentro da camada. No exemplo com atrito, <span class="m">M = 0{,}3</span> kg, de modo que <span class="m">F_0 = 2{,}943\,a</span> N, e a barra de <span class="m">F_0</span> percorre a segunda cascata: 4,15 N, período 1; 4,20 e 4,25 N, período 2; 4,30 N, período 4; 4,35 N, caos; 4,40 N, uma janela periódica estreita; o exemplo tem <span class="m">a = 1{,}5</span> (4,41 N), caos. O diagrama de fase mostra a trajetória inteira, transiente incluído, e em 120 s cabem 40 períodos da força.</p>
+
+      <h3>9. Cálculo das curvas</h3>
       <p>Quando há solução fechada (seções 2 a 5 e 7), as curvas da página são calculadas diretamente por ela. Caso contrário, o sistema de primeira ordem da seção 1, <span class="m">\dot y = G(t, y)</span> com <span class="m">y = (x, p)</span>, é integrado pelo método de Runge–Kutta clássico de quarta ordem: a cada passo <span class="m">h</span>,</p>
       <div class="m">k_1 = G(t, y),\quad k_2 = G\!\left(t + \tfrac h2,\ y + \tfrac h2 k_1\right),\quad k_3 = G\!\left(t + \tfrac h2,\ y + \tfrac h2 k_2\right),\quad k_4 = G(t + h,\ y + h\,k_3),</div>
       <div class="m">y(t+h) = y(t) + \tfrac h6\left(k_1 + 2k_2 + 2k_3 + k_4\right),</div>
@@ -253,6 +300,15 @@
         <li><i>NIST Digital Library of Mathematical Functions</i>, capítulo 22, Jacobian Elliptic Functions: <a href="https://dlmf.nist.gov/22.19" target="_blank" rel="noopener">§22.19(i), Classical Dynamics: The Pendulum</a>, e §22.20, Methods of Computation; capítulo 19, Elliptic Integrals.</li>
         <li>B. C. Carlson, «Computing elliptic integrals by duplication», <i>Numerische Mathematik</i> 33, 1–16 (1979). O método usado para a integral incompleta <span class="m">F(\varphi,\kappa)</span>.</li>
         <li>G. L. Baker e J. P. Gollub, <i>Chaotic Dynamics: An Introduction</i>, 2ª ed. (Cambridge University Press, 1996). O pêndulo amortecido e forçado; os parâmetros do exemplo caótico do menu são os deste livro.</li>
+      </ul>
+
+      <h3>Caos</h3>
+      <ul>
+        <li>J. Guckenheimer e P. Holmes, <i>Nonlinear Oscillations, Dynamical Systems, and Bifurcations of Vector Fields</i> (Springer, 1983). Capítulo 4: o método de Melnikov e o teorema de Smale–Birkhoff.</li>
+        <li>B. V. Chirikov, «A universal instability of many-dimensional oscillator systems», <i>Physics Reports</i> 52, 263–379 (1979). A camada estocástica em torno da separatriz e a superposição de ressonâncias.</li>
+        <li>A. J. Lichtenberg e M. A. Lieberman, <i>Regular and Chaotic Dynamics</i>, 2ª ed. (Springer, 1992).</li>
+        <li>M. J. Feigenbaum, «Quantitative universality for a class of nonlinear transformations», <i>Journal of Statistical Physics</i> 19, 25–52 (1978).</li>
+        <li>J. M. Greene, R. S. MacKay, F. Vivaldi e M. J. Feigenbaum, «Universal behaviour in families of area-preserving maps», <i>Physica D</i> 3, 468–486 (1981).</li>
       </ul>
 
       <h3>Cálculo numérico</h3>

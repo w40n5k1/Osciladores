@@ -32,6 +32,8 @@ funciona sem internet.
 - **Equação de movimento e solução**: a equação diferencial com os termos presentes, em símbolos e com os
   valores atuais; o gráfico de *x*(*t*), ou θ(*t*); e, quando existe, a fórmula da solução com suas constantes.
 - **Deduções** e **Referências**: dois painéis no fim da página, um sobre o outro, fechados até que se clique no título.
+  As deduções incluem uma seção sobre os caminhos para o caos no pêndulo forçado, sem e com atrito, com
+  varreduras numéricas (os programas das varreduras não fazem parte da página).
 
 A solução inteira, de *t* = 0 até a duração escolhida, é recalculada a cada mudança de um controle; a animação
 apenas move um cursor de tempo sobre ela. Arrastar nos gráficos de energia e de *x*(*t*) move o cursor. O rodapé
