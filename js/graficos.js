@@ -29,6 +29,8 @@
  *   xRange        [lower, upper] of the x(t) plot
  *   tStart, tRange  first instant held in sol (zero, unless the motion runs without end); [first, last] instant of the time axes
  *   x0w           initial coordinate as drawn in the phase diagram
+ *   offset        number of samples discarded since t = 0: sample i of sol is sample offset + i of the motion
+ *   serial        a number that changes whenever the model is rebuilt from the controls
  *   tEnd, tEscape last instant the cursor can reach; instant at which an escaping mass reaches infinity, or null
  *   tau           time (s) over which the arrows of the phase diagram show the displacement
  *   index         index of the sample under the time cursor
@@ -96,6 +98,7 @@
     constructor(canvas, margins) {
       this.canvas = canvas;
       this.layer = document.createElement('canvas');
+      this.layers = [this.layer];           // off-screen canvases kept at the size of the visible one
       this.m = margins;
       this.x = [0, 1];
       this.y = [0, 1];
@@ -108,7 +111,7 @@
       const w = Math.round(box.width), h = Math.round(box.height);
       if (w === this.w && h === this.h && dpr === this.dpr) return false;
       this.w = w; this.h = h; this.dpr = dpr;
-      for (const c of [this.canvas, this.layer]) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+      for (const c of [this.canvas].concat(this.layers)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
       return true;
     }
 
@@ -127,9 +130,23 @@
       return { x: this.x[0] + fx * (this.x[1] - this.x[0]), y: this.y[0] + fy * (this.y[1] - this.y[0]) };
     }
 
-    /** Context of the off-screen layer, cleared and scaled to CSS pixels. */
-    begin() {
-      const ctx = this.layer.getContext('2d');
+    /** One more off-screen canvas, kept at the size of the visible one (transparent until drawn on). */
+    addLayer() {
+      const layer = document.createElement('canvas');
+      layer.width = this.canvas.width; layer.height = this.canvas.height;
+      this.layers.push(layer);
+      return layer;
+    }
+
+    /** Copies an off-screen canvas onto a context of the visible one, pixel for pixel. */
+    paste(ctx, layer) {
+      if (!layer.width || !layer.height) return;
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(layer, 0, 0); ctx.restore();
+    }
+
+    /** Context of an off-screen layer (the main one by default), cleared and scaled to CSS pixels. */
+    begin(layer) {
+      const ctx = (layer || this.layer).getContext('2d');
       ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
       ctx.clearRect(0, 0, this.w, this.h);
       return ctx;
@@ -221,6 +238,44 @@
       ctx.setLineDash([]);
     }
 
+    /**
+     * Polyline of a quantity sampled at increasing abscissas (a function of time), like `line`.  When there
+     * are several samples per column of device pixels, each column is drawn as one rectangle from its lowest to its
+     * highest value: the same picture, at a cost that goes with the width of the plot instead of the number
+     * of samples.  This is what lets a long record be redrawn at every frame.
+     */
+series(ctx, xs, ys, from, to, style) {
+      if (to - from <= 4 * (this.right - this.left) * (this.dpr || 1)) { this.line(ctx, xs, ys, from, to, style); return; }
+      const value = typeof ys === 'function' ? ys : i => ys[i], limit = 4 * Math.max(this.w, this.h), half = style.width / 2;
+      const dashed = !!style.dash, dpr = this.dpr || 1;         // columns are one device pixel wide
+      ctx.fillStyle = ctx.strokeStyle = style.color; ctx.lineWidth = style.width; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.setLineDash(style.dash || []);
+      if (dashed) ctx.beginPath();
+      let column = NaN, low = 0, high = 0, last = 0, link = NaN, pen = false;
+      // One pixel column: a rectangle from its lowest to its highest value, joined to where the column before
+      // ended and thickened by the width of the line.  A dashed curve gets one point per column instead.
+      const flush = () => {
+        if (column !== column) return;                          // no column yet
+        if (dashed) { if (pen) ctx.lineTo((column + 0.5) / dpr, last); else ctx.moveTo((column + 0.5) / dpr, last); pen = true; return; }
+        const top = Math.min(low, link === link ? link : low) - half, bottom = Math.max(high, link === link ? link : high) + half;
+        ctx.fillRect(column / dpr, top, 1 / dpr, bottom - top);
+        link = last;
+      };
+      for (let i = from; i < to; i++) {
+        const px = this.X(xs[i]);
+        let py = this.Y(value(i));
+        if (!isFinite(px) || py !== py) continue;
+        py = Math.max(-limit, Math.min(limit, py));
+        const here = Math.floor(px * dpr);
+        if (here !== column) { flush(); if (here !== column + 1) link = NaN; column = here; low = high = py; }
+        else { if (py < low) low = py; if (py > high) high = py; }
+        last = py;
+      }
+      flush();
+      if (dashed) ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     /** A dot of the given color with a ring of the surface color around it. */
     dot(ctx, x, y, color, radius) {
       const px = this.X(x), py = this.Y(y);
@@ -264,9 +319,25 @@
 
   // ------------------------------------------------------------------------------------------ phase diagram
 
+  /** Number of blocks into which the trajectory of the phase diagram is divided (see Phase). */
+  const BLOCKS = 16;
+
+  /**
+   * The phase diagram.  It is drawn in three parts, so that a motion without end can scroll at every frame
+   * without redrawing the whole trajectory:
+   *   ground   axes, curves of constant energy, separatrices, steady state: redrawn when the parameters, the
+   *            ranges or the size change (off-screen layer);
+   *   track    the trajectory over whole blocks of samples (the samples are counted from t = 0 and grouped
+   *            in blocks of 1/BLOCKS of the record): redrawn when a block enters or leaves (second layer);
+   *   the rest, at every frame: the ends of the trajectory that do not fill a block, the equilibrium points,
+   *            the initial condition, and the moving point with its arrows.
+   */
   class Phase {
     constructor(canvas) {
       this.area = new Frame(canvas, { l: 46, r: 12, t: 24, b: 34 });
+      this.track = this.area.addLayer();
+      this.drawn = { ground: '', track: '' };       // what the two layers currently show
+      this.whole = [0, 0];                          // samples [from, to] of the record covered by the track layer
     }
 
     /**
@@ -298,9 +369,35 @@
       ctx.stroke();
     }
 
-    render(model) {
-      const fr = this.area, { P, sol, view } = model;
+render(model) {
+      const fr = this.area, { sol, view } = model;
       fr.x = [-view.xr, view.xr]; fr.y = [-view.pr, view.pr];
+      const ground = [model.serial, view.xr, view.pr, fr.w, fr.h, fr.dpr].join(' ');
+      if (ground !== this.drawn.ground) { this.drawn.ground = ground; this.drawn.track = ''; this.renderGround(model); }
+
+      // Whole blocks of the record: sample i of the record is sample model.offset + i since t = 0.
+      const block = Math.max(1, Math.ceil(sol.n / BLOCKS)), first = model.offset, last = view.nView - 1;
+      let from = Math.ceil(first / block) * block - first, to = Math.floor((first + last) / block) * block - first;
+      if (to <= from) from = to = 0;
+      this.whole = [from, to];
+      const track = [ground, first + from, first + to].join(' ');
+      if (track !== this.drawn.track) {
+        this.drawn.track = track;
+        const ctx = fr.begin(this.track);
+        fr.clip(ctx);
+        fr.line(ctx, model.xw, sol.p, from, to + 1, this.trajectory(model));
+        ctx.restore();
+      }
+    }
+
+    /** Line style of the trajectory. */
+    trajectory(model) {
+      return { color: css('--serie-1'), width: 1.6, jump: model.wrap };
+    }
+
+    /** Axes, curves of constant energy, separatrices and steady state, on the main off-screen layer. */
+    renderGround(model) {
+      const fr = this.area, { P, view } = model;
       const ctx = fr.begin();
       fr.axes(ctx, model.names.q, model.names.p, true);
       fr.clip(ctx);
@@ -336,24 +433,12 @@
         }
         ctx.stroke(); ctx.setLineDash([]);
       }
-
-      fr.line(ctx, model.xw, sol.p, 0, view.nView, { color: css('--serie-1'), width: 1.6, jump: model.wrap });
-
-      // Equilibrium points: filled where stable, open where unstable.
-      for (const e of visible) {
-        const px = fr.X(e.x), py = fr.Y(0);
-        ctx.beginPath(); ctx.arc(px, py, 4, 0, 2 * Math.PI);
-        ctx.fillStyle = e.stable ? css('--tinta') : css('--painel'); ctx.fill();
-        ctx.strokeStyle = css('--tinta'); ctx.lineWidth = 1.5; ctx.stroke();
-      }
-      // Initial condition: a ring, which can be dragged.
-      ctx.beginPath(); ctx.arc(fr.X(model.x0w), fr.Y(model.p0), 6, 0, 2 * Math.PI);
-      ctx.strokeStyle = css('--serie-1'); ctx.lineWidth = 2; ctx.stroke();
       ctx.restore();
     }
 
     /**
-     * The moving point, the stretch of trajectory just behind it, and the arrows at the point.
+     * What is drawn at every frame: the two ends of the trajectory, the equilibrium points, the initial
+     * condition, and the moving point with the stretch of trajectory just behind it and its arrows.
      *
      * The tangent to the trajectory is (x', p') = (velocity, total force); for the pendulum, (angular velocity,
      * total torque), and the external "force" is the torque F0 L cos(w t).  The arrows show this vector and
@@ -367,7 +452,23 @@
     update(model) {
       const fr = this.area, { P, sol, view } = model, i = Math.min(model.index, view.nView - 1);
       const ctx = fr.screen();
+      fr.paste(ctx, this.track);
       fr.clip(ctx);
+      const [from, to] = this.whole, style = this.trajectory(model);
+      fr.line(ctx, model.xw, sol.p, 0, from + 1, style);
+      fr.line(ctx, model.xw, sol.p, to, view.nView, style);
+
+      // Equilibrium points: filled where stable, open where unstable.
+      for (const e of model.eq) {
+        if (Math.abs(e.x) > view.xr * (1 + 1e-9)) continue;
+        ctx.beginPath(); ctx.arc(fr.X(e.x), fr.Y(0), 4, 0, 2 * Math.PI);
+        ctx.fillStyle = e.stable ? css('--tinta') : css('--painel'); ctx.fill();
+        ctx.strokeStyle = css('--tinta'); ctx.lineWidth = 1.5; ctx.stroke();
+      }
+      // Initial condition: a ring, which can be dragged.
+      ctx.beginPath(); ctx.arc(fr.X(model.x0w), fr.Y(model.p0), 6, 0, 2 * Math.PI);
+      ctx.strokeStyle = css('--serie-1'); ctx.lineWidth = 2; ctx.stroke();
+
       const tail = Math.max(0, i - Math.round(0.6 / sol.dt));
       fr.line(ctx, model.xw, sol.p, tail, i + 1, { color: css('--serie-1'), width: 3.5, jump: model.wrap });
 
@@ -439,9 +540,9 @@
       const ctx = fr.begin();
       fr.axes(ctx, ['t', ' (s)'], ['', 'energia (J)'], true);
       fr.clip(ctx);
-      fr.line(ctx, sol.t, en.U, 0, view.nView, { color: css('--serie-3'), width: 1.4 });
-      fr.line(ctx, sol.t, en.K, 0, view.nView, { color: css('--serie-2'), width: 1.4 });
-      fr.line(ctx, sol.t, en.E, 0, view.nView, { color: css('--serie-1'), width: 2.2 });
+      fr.series(ctx, sol.t, en.U, 0, view.nView, { color: css('--serie-3'), width: 1.4 });
+      fr.series(ctx, sol.t, en.K, 0, view.nView, { color: css('--serie-2'), width: 1.4 });
+      fr.series(ctx, sol.t, en.E, 0, view.nView, { color: css('--serie-1'), width: 2.2 });
       escapeMark(ctx, fr, model);
       ctx.restore();
 
@@ -507,12 +608,12 @@
       fr.axes(ctx, ['t', ' (s)'], model.names.q, true);
       fr.clip(ctx);
       if (an && an.kind === 'linear' && an.particular !== 'none' && model.components) {
-        fr.line(ctx, sol.t, i => an.xh(sol.t[i]), 0, sol.n, { color: css('--serie-2'), width: 1.2 });
-        fr.line(ctx, sol.t, i => an.xp(sol.t[i]), 0, sol.n, { color: css('--serie-3'), width: 1.2 });
+        fr.series(ctx, sol.t, i => an.xh(sol.t[i]), 0, sol.n, { color: css('--serie-2'), width: 1.2 });
+        fr.series(ctx, sol.t, i => an.xp(sol.t[i]), 0, sol.n, { color: css('--serie-3'), width: 1.2 });
       }
-      fr.line(ctx, sol.t, sol.x, 0, view.nView, { color: css('--serie-1'), width: 2.2 });
+      fr.series(ctx, sol.t, sol.x, 0, view.nView, { color: css('--serie-1'), width: 2.2 });
       if (model.approx && model.showApprox) {
-        fr.line(ctx, sol.t, i => model.approx.x(sol.t[i]), 0, sol.n, { color: css('--tinta'), width: 1, dash: [5, 4] });
+        fr.series(ctx, sol.t, i => model.approx.x(sol.t[i]), 0, sol.n, { color: css('--tinta'), width: 1, dash: [5, 4] });
       }
       escapeMark(ctx, fr, model);
       ctx.restore();

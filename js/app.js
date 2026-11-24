@@ -10,7 +10,7 @@
  *   GROUPS       the controls: symbol, range, step and default value of each, and the caption of each group
  *   EXAMPLES     the configurations offered in the "Exemplos" menu
  *   compute()    builds the model (solution, energies, equilibria, ranges of the plots) from the controls
- *   extend()     motion without end: moves the stretch of solution held in the model forward in time
+ *   extend()     motion without end: advances the stretch of solution held in the model, frame by frame
  *   syncRanges() makes the thin sliders and the ranges of x0 and p0 follow the phase diagram
  *   decorate()   colored segments and marks of the bars: damping regimes, resonance, shape of the potential
  *   formulas()   equation of motion and solution, rendered by KaTeX; legends; method of computation
@@ -127,6 +127,7 @@
   let timeBar = null;
   let model = null;                         // see graficos.js
   let stale = true;                         // the controls changed: the model must be recomputed
+  let builds = 0;                           // number of models built so far (model.serial)
   let redraw = true;                        // the screen must be redrawn
   let plots = [];
 
@@ -209,6 +210,8 @@
       showApprox: state.approx,
       tau: ARROW_TIME / D.w0,
       index: 0,
+      offset: 0,
+      serial: ++builds,
     };
     show(sol, before);
     // A cursor left beyond the new solution: back to the start if the motion runs without end, else to the end.
@@ -266,22 +269,27 @@
     // The time bar covers what is shown.  Its mark is the zero of time; once the stretch shown no longer
     // starts at zero the mark sits at its left end, and clicking it still restarts the motion from t = 0.
     timeBar.setRange(model.tStart, Math.max(model.tEnd, model.tStart + 0.01), 0.01, 2);
-    timeBar.decorate([], [{ at: model.tStart, label: model.tStart === 0 ? '0' : '↺ 0', snap: model.tStart === 0 }]);
+    timeBar.decorate([], [model.tStart === 0 ? { at: 0, label: '0', snap: true } : { at: 'min', label: '↺ 0' }]);
   }
 
   /** True if the motion can be computed beyond the end of what is shown. */
   const extendable = () => !model.sol.escaped && !model.sol.failed;
 
   /**
-   * Motion without end: moves the stretch of solution shown forward by a quarter of its duration.  The next
-   * quarter is computed from the last state (Fisica.advance) and the oldest quarter is discarded, so that the
-   * model always holds the same number of samples: the last `duração` seconds, 120 s at most.
+   * Motion without end: advances the stretch of solution held in the model by `duration` seconds.  The new
+   * samples are computed from the last state (Fisica.advance) and as many of the oldest are discarded, so
+   * that the model always holds the same number of samples: the last `duração` seconds, 120 s at most.
+   * Called at every frame while the cursor is at the end, it makes the plots scroll.
    */
-  function extend() {
-    const old = model.sol, next = F.advance(model.P, old, model.T / 4), added = next.n - 1, kept = old.n - added;
-    const join = (before, after) => { const out = new Float64Array(old.n); out.set(before.subarray(added, old.n)); out.set(after.subarray(1, next.n), kept); return out; };
-    show({ t: join(old.t, next.t), x: join(old.x, next.x), p: join(old.p, next.p), n: old.n, dt: old.dt,
-      escaped: next.escaped, failed: next.failed, exact: old.exact, step: next.step }, model.view);
+  function extend(duration) {
+    const sol = model.sol, next = F.advance(model.P, sol, duration), added = next.n - 1;
+    for (const key of ['t', 'x', 'p']) {
+      sol[key].copyWithin(0, added, sol.n);
+      sol[key].set(next[key].subarray(1, next.n), sol.n - added);
+    }
+    sol.escaped = next.escaped; sol.failed = next.failed; sol.step = next.step;
+    model.offset += added;
+    show(sol, model.view);
   }
 
   /** Gives a control of an initial condition the range -a to a, with a step of about 1/240 of it. */
@@ -450,11 +458,15 @@
       state.t += Math.min(0.1, (now - lastTime) / 1000) * state.speed;
       if (state.t >= model.tEnd) {
         if (state.endless && !stale && extendable()) {
-          while (state.t >= model.tEnd && extendable()) extend();
-          syncRanges(); formulas();
+          // Just enough new samples to reach the cursor: the stretch shown follows it, frame by frame.
+          const dt = model.sol.dt, step = model.sol.step;
+          extend(Math.max(1, Math.ceil((state.t - model.tEnd) / dt - 1e-9)) * dt);
+          syncRanges();
+          if (model.sol.step !== step || !extendable()) formulas();
           moved = true;
         }
-        if (state.t >= model.tEnd) { state.t = model.tEnd; setPlaying(false); }
+        if (state.t >= model.tEnd && !(state.endless && extendable())) setPlaying(false);
+        state.t = Math.min(state.t, model.tEnd);
       }
       redraw = true;
     }

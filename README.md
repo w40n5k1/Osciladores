@@ -29,10 +29,11 @@ funciona sem internet.
   direito, o potencial *V*(*x*) no intervalo de *x* do diagrama, com a posição atual, o nível da energia total e
   a energia cinética (o segmento vertical entre os dois).
 - **Tempo**: botão de reproduzir e pausar, e a barra do instante; clicar no «0» da barra recomeça o movimento.
-  Com «tempo infinito» marcado, o movimento continua além da duração: quando o cursor chega ao fim, o trecho
-  mostrado avança um quarto da duração (o quarto seguinte é calculado a partir do último estado e o mais antigo
-  é descartado). A página guarda sempre os últimos *T* segundos, 120 s no máximo; a marca «↺ 0» recomeça de
-  *t* = 0. Mudar um parâmetro também recomeça de *t* = 0, pois as condições iniciais valem nesse instante.
+  Com «tempo infinito» marcado, o movimento continua além da duração: quando o cursor chega ao fim, os
+  gráficos passam a rolar. A cada quadro as amostras novas são calculadas a partir do último estado e outras
+  tantas, as mais antigas, são descartadas: a página guarda sempre os últimos *T* segundos, 120 s no máximo. A
+  marca «↺ 0» recomeça de *t* = 0. Mudar um parâmetro também recomeça de *t* = 0, pois as condições iniciais
+  valem nesse instante.
 - **Equação de movimento e solução**: a equação diferencial com os termos presentes, em símbolos e com os
   valores atuais; o gráfico de *x*(*t*), ou θ(*t*); e, quando existe, a fórmula da solução com suas constantes.
 - **Deduções** e **Referências**: dois painéis no fim da página, um sobre o outro, fechados até que se clique no título.
@@ -143,7 +144,7 @@ parte linear: valem para pequenas amplitudes.
                           funções elípticas), Runge–Kutta e a escolha do passo
     js/formulas.js        equação e solução em LaTeX; formatação dos números
     js/controles.js       barra deslizante com segmentos e marcas; barra fina dos intervalos do diagrama
-    js/graficos.js        os três gráficos (canvas)
+    js/graficos.js        os três gráficos (canvas), desenhados de modo que possam rolar a cada quadro
     js/app.js             controles, exemplos, animação: o ponto de partida para mudar a página
     tests/teste_fisica.js testes do modelo
     vendor/katex/         KaTeX 0.16.11 (tipografia das fórmulas), licença MIT

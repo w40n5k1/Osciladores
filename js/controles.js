@@ -21,7 +21,8 @@
  * segments:  [{from, to, kind}]            kind is a CSS class that gives the color
  * marks:     [{at, label, kind, snap}]     label is HTML; with snap the slider catches on the mark, so that
  *                                          the exact value (zero, critical damping, resonance) can be selected;
- *                                          clicking the label of a mark selects its value too
+ *                                          clicking the label of a mark selects its value too.  at: 'min' puts
+ *                                          the mark at the lower end of the range, whatever it is
  * onChange(control, origin): origin is 'input' (the slider moved) or 'mark' (the label of a mark was clicked).
  *
  * Ladder: a thin slider, horizontal or vertical, over a fixed list of values; it sets the range of an axis
@@ -53,7 +54,6 @@
       this.segments = [];                   // as last given to decorate()
       this.allMarks = [];
       this.marks = [];                      // the marks that fall inside the range
-      this.drawn = '';
       this.dragging = false;                // a pointer is down on the slider
 
       const el = document.createElement('div');
@@ -82,7 +82,7 @@
       this.markLayer.addEventListener('click', event => {
         const at = event.target.closest('[data-at]');
         if (!at) return;
-        this.set(parseFloat(at.dataset.at));
+        this.set(at.dataset.at === 'min' ? this.spec.min : parseFloat(at.dataset.at));
         this.onChange(this, 'mark');
       });
       this.set(spec.value);
@@ -165,23 +165,24 @@
       this.decorate(this.segments, this.allMarks);
     }
 
-    /** Redraws the segments and marks of the bar (only if they changed). */
+    /** Redraws the segments and marks of the bar (only if what is drawn changed). */
     decorate(segments, marks) {
       this.segments = segments; this.allMarks = marks;
-      this.marks = marks.filter(m => m.at >= this.spec.min && m.at <= this.spec.max);
-      const key = JSON.stringify([this.spec.min, this.spec.max, segments, this.marks]);
-      if (key === this.drawn) return;
-      this.drawn = key;
-
-      this.track.innerHTML = segments.map(s => {
+      const position = m => (m.at === 'min' ? this.spec.min : m.at);
+      this.marks = marks.filter(m => position(m) >= this.spec.min && position(m) <= this.spec.max).map(m => Object.assign({}, m, { at: position(m), edge: m.at === 'min' }));
+      const track = segments.map(s => {
         const a = Math.max(0, this.fraction(s.from)), b = Math.min(1, this.fraction(s.to));
         return b > a ? `<i class="segmento ${s.kind}" style="left:${100 * a}%;width:${100 * (b - a)}%"></i>` : '';
       }).join('');
-      this.markLayer.innerHTML = this.marks.map(m => {
+      const labels = this.marks.map(m => {
         const f = this.fraction(m.at), side = f < 0.1 ? ' esquerda' : f > 0.9 ? ' direita' : '';
         const label = m.label ? `<span>${m.label}</span>` : '';
-        return `<i class="marca ${m.kind || ''}${side}" style="left:${100 * f}%" data-at="${m.at}">${label}</i>`;
+        return `<i class="marca ${m.kind || ''}${side}" style="left:${100 * f}%" data-at="${m.edge ? 'min' : m.at}">${label}</i>`;
       }).join('');
+      // The elements are replaced only when they differ, so that a mark stays in place under the pointer
+      // while the range of the bar slides (the time bar of a motion without end).
+      if (track !== this.drawnTrack) { this.track.innerHTML = track; this.drawnTrack = track; }
+      if (labels !== this.drawnLabels) { this.markLayer.innerHTML = labels; this.drawnLabels = labels; }
     }
   }
 
