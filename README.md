@@ -1,55 +1,74 @@
 <!-- By Bruno Mota - METAbio -->
-# Osciladores
+# Osciladores: harmônicos, anarmônicos e quase-harmônicos
 
-Página interativa sobre o oscilador harmônico e anarmônico em uma dimensão, livre e forçado, com amortecimento.
-Feita para o curso de Mecânica e Termodinâmica do IMPA Tech.
+Página interativa sobre o oscilador em uma dimensão (harmônico ou com termos anarmônicos, livre ou forçado, com
+amortecimento) e sobre o pêndulo. Feita para o curso de Mecânica e Termodinâmica do IMPA Tech.
 
-Para usar, abra `index.html` no navegador. Não há nada a instalar e a página funciona sem internet.
+Para usar, abra `index.html` no navegador, com a pasta inteira ao lado dele. Não há nada a instalar e a página
+funciona sem internet.
 
 ## O que a página mostra
 
+- **Controles** (à esquerda). No alto, a chave entre os dois sistemas: *Oscilador harmônico* (*M*, *k*, *b*, os
+  termos anarmônicos λ₃ e λ₄, e a força externa) e *Pêndulo* (*M*, *L*, *g*, *b* e a força externa). Depois, as
+  condições iniciais *x*₀ e *p*₀ e a duração. As barras trazem segmentos coloridos e marcas (ver abaixo), com a
+  legenda sob cada grupo.
 - **Espaço de fase** (painel principal): a trajetória no plano *p* × *x*, sobre as curvas de energia constante do
-  oscilador sem amortecimento nem força. Os pontos de equilíbrio aparecem como círculos cheios (estáveis) ou
-  vazios (instáveis); pelas barreiras passa a separatriz, tracejada. No oscilador linear forçado e amortecido, a
-  elipse tracejada é o regime estacionário. Arrastar no diagrama escolhe a condição inicial.
-- **Energia** (painel lateral): energia cinética, potencial e total em função do tempo.
-- **Controles**: *M*, *k*, *b*, λ₃, λ₄, *F*₀, ω, as condições iniciais *x*₀ e *p*₀ e a duração. As barras trazem
-  segmentos coloridos e marcas (ver abaixo).
-- **Equação de movimento e solução** (embaixo): a equação diferencial com os termos presentes, em símbolos e com
-  os valores atuais; o gráfico de *x*(*t*); e, quando existe, a fórmula da solução com suas constantes.
+  sistema sem atrito nem força externa. Os pontos de equilíbrio aparecem como círculos cheios (estáveis) ou
+  vazios (instáveis); pelos instáveis passa a separatriz, tracejada. No oscilador linear forçado e amortecido, a
+  elipse tracejada é o regime estacionário. No ponto atual há quatro setas: a velocidade (horizontal) e a força
+  resultante (vertical), finas e cinza; a sua soma, que é o vetor tangente (*x'*, *p'*); e, mais grossa e
+  vermelha, a força externa *F*₀ cos(ω*t*). Todas multiplicadas pelo mesmo tempo τ = 0,35/ω₀, de modo que
+  mostram o deslocamento no diagrama durante τ. Arrastar no diagrama escolhe a condição inicial.
+- **Intervalos do diagrama**: as duas barras finas, embaixo e à esquerda, definem os intervalos de *x* e de *p*,
+  sempre simétricos (de −*a* a *a*). Com «ajustar à curva» marcado, os intervalos acompanham a trajetória; mover
+  uma das barras desmarca a opção. As barras de *x*₀ e *p*₀ cobrem o intervalo do diagrama.
+- **Energia** (painel lateral): energia cinética, potencial e total em função do tempo. No canto superior
+  direito, o potencial *V*(*x*) no intervalo de *x* do diagrama, com a posição atual, o nível da energia total e
+  a energia cinética (o segmento vertical entre os dois).
+- **Tempo**: botão de reproduzir e pausar, e a barra do instante; clicar no «0» da barra recomeça o movimento.
+- **Equação de movimento e solução**: a equação diferencial com os termos presentes, em símbolos e com os
+  valores atuais; o gráfico de *x*(*t*); e, quando existe, a fórmula da solução com suas constantes.
+- **Deduções** e **Referências**, em duas abas no fim da página.
 
 A solução inteira, de *t* = 0 até a duração escolhida, é recalculada a cada mudança de um controle; a animação
-apenas move um cursor de tempo sobre ela. Arrastar nos gráficos de energia e de *x*(*t*) move o cursor.
+apenas move um cursor de tempo sobre ela. Arrastar nos gráficos de energia e de *x*(*t*) move o cursor. O rodapé
+diz como as curvas foram obtidas: «Calculado analiticamente» ou «Integração numérica», com o passo.
 
 ## Modelo
 
-Equação de movimento:
+Oscilador:
 
-    M x'' + b x' + k x + λ₃ x² + λ₄ x³ = F₀ cos(ω t)
+    M x'' + b x' + k x + λ₃ x² + λ₄ x³ = F₀ cos(ω t)        V(x) = k x²/2 + λ₃ x³/3 + λ₄ x⁴/4
 
-A força conservativa deriva do potencial
+de modo que λ₃ e λ₄ multiplicam *x*² e *x*³ na força, e *x*³/3 e *x*⁴/4 no potencial.
 
-    V(x) = k x²/2 + λ₃ x³/3 + λ₄ x⁴/4
+Pêndulo, com *x* o comprimento de arco a partir do ponto mais baixo (o ângulo é θ = *x*/*L*):
 
-de modo que λ₃ e λ₄ multiplicam *x*² e *x*³ na força, e *x*³/3 e *x*⁴/4 no potencial. O momento é *p* = *M x'* e a
-energia mostrada é *E* = *p*²/2*M* + *V*(*x*). Unidades do SI.
+    M x'' + b x' + M g sen(x/L) = F₀ cos(ω t)                V(x) = M g L [1 − cos(x/L)]
 
-Grandezas derivadas, todas da parte linear da força:
+Nos dois, o momento é *p* = *M x'* e a energia mostrada é *E* = *p*²/2*M* + *V*(*x*). Unidades do SI. No diagrama
+de fase do pêndulo, *x* é reduzido a uma volta, −π*L* < *x* ≤ π*L*.
+
+Grandezas derivadas, todas da parte linear da força (para o pêndulo, com *k* = *Mg*/*L*):
 
 | símbolo | definição | significado |
 |---|---|---|
-| ω₀ | √(*k*/*M*) | frequência angular natural |
+| ω₀ | √(*k*/*M*), ou √(*g*/*L*) | frequência angular natural |
 | γ | *b*/2*M* | taxa de amortecimento: a amplitude livre cai como e^(−γ*t*) |
 | ω₁ | √(ω₀² − γ²) | frequência angular da oscilação amortecida |
 | *Q* | ω₀/2γ | fator de qualidade |
 | ω_R | √(ω₀² − 2γ²) | frequência da força que dá a maior amplitude estacionária (existe se ω₀² > 2γ²) |
+| ω₋, ω₊ | √(ω₀² + γ²) ∓ γ | extremos da faixa em que a potência média absorvida passa da metade da máxima |
 
-Regimes: subamortecido (γ < ω₀), crítico (γ = ω₀, isto é, *b* = 2√(*kM*)) e superamortecido (γ > ω₀).
+Regimes: subamortecido (γ < ω₀), crítico (γ = ω₀, isto é, *b* = 2*M*ω₀) e superamortecido (γ > ω₀).
 
-### Solução analítica (λ₃ = λ₄ = 0)
+### Soluções fechadas
 
-*x*(*t*) = *x*_h(*t*) + *x*_p(*t*): uma solução da equação sem força, que carrega as condições iniciais, mais uma
-solução particular da equação forçada.
+Quando existe solução fechada, as curvas são calculadas por ela, e não pela integração numérica.
+
+Oscilador linear (λ₃ = λ₄ = 0): *x*(*t*) = *x*_h(*t*) + *x*_p(*t*), uma solução da equação sem força, que carrega
+as condições iniciais, mais uma solução particular da equação forçada.
 
 | caso | termo |
 |---|---|
@@ -60,36 +79,56 @@ solução particular da equação forçada.
 | forçado | + *A* cos(ω*t* − δ), com *A* = (*F*₀/*M*)/√((ω₀² − ω²)² + 4γ²ω²) e tan δ = 2γω/(ω₀² − ω²) |
 | forçado em ω = ω₀, sem amortecimento | + (*F*₀/2*M*ω₀) *t* sen(ω₀*t*) |
 
-Com termos anarmônicos não há solução em funções elementares, e a página mostra apenas a solução numérica.
+Pêndulo sem atrito nem força externa, com κ² = *E*/(2*MgL*), em funções elípticas de Jacobi:
 
-### Solução numérica
+| caso | solução |
+|---|---|
+| oscilação (κ < 1) | sen(*x*/2*L*) = κ sn(ω₀*t* + *u*₀, κ); período 4*K*(κ)/ω₀ |
+| rotação (κ > 1) | *x* = 2*L* am(±κω₀*t* + *u*₀, 1/κ); uma volta em 2*K*(1/κ)/(κω₀) |
+| separatriz (κ = 1) | sen(*x*/2*L*) = tanh(±ω₀*t* + *u*₀) |
 
-Runge–Kutta clássico de 4ª ordem, com passo de 1 ms, aplicado ao sistema *x'* = *p*/*M*,
-*p'* = −*b p*/*M* − *k x* − λ₃*x*² − λ₄*x*³ + *F*₀ cos(ω*t*). Uma amostra a cada 5 ms é guardada para os gráficos.
+Uma massa em repouso sobre um ponto de equilíbrio, sem força externa, aí permanece (também no instável).
+
+As deduções estão na aba «Deduções» da página. Para o pêndulo, a curva tracejada «aproximação harmônica» no
+gráfico de *x*(*t*) é a solução do oscilador linear com *k* = *Mg*/*L*; para o oscilador com termos anarmônicos,
+é a solução com λ₃ = λ₄ = 0.
+
+### Integração numérica
+
+Nos outros casos (termos anarmônicos; pêndulo com atrito ou força externa): Runge–Kutta clássico de 4ª ordem
+aplicado ao sistema *x'* = *p*/*M*, *p'* = −d*V*/d*x* − *b p*/*M* + *F*₀ cos(ω*t*). Uma amostra a cada 5 ms é
+guardada para os gráficos. O passo é de 1 ms e é reduzido quando o movimento é rápido: procura-se manter
+(maior taxa do movimento) × (passo) ≤ 0,05, em que a taxa é a maior entre √(|*V''*|/*M*), *b*/*M*, ω e, no
+pêndulo, a velocidade angular. O passo mínimo é de 25 µs e o total não passa de 1,5 milhão de passos.
 
 Se o potencial não é confinante (λ₄ < 0, ou λ₄ = 0 com λ₃ ≠ 0), a massa pode ultrapassar a barreira e ir a
-infinito em tempo finito. A integração para nesse instante e a página avisa.
+infinito em tempo finito. A integração para nesse instante, a página avisa, e o eixo do tempo termina aí. Os
+gráficos mostram o movimento enquanto a massa está dentro do diagrama de fase, que nesse caso vai até 1,5 vez a
+distância da barreira (onde o potencial cúbico volta ao valor do fundo do poço).
 
 ## O que as barras indicam
 
 | barra | segmentos e marcas |
 |---|---|
-| *b* | azul: subamortecido; laranja: superamortecido; marca no valor crítico 2√(*kM*) |
-| *k*, *M* | a mesma fronteira vista de *k* e de *M* (crítico em *k* = *b*²/4*M* e em *M* = *b*²/4*k*) |
-| ω | marcas em ω₀ e em ω_R; faixa verde ω₀ ± γ, a meia largura da ressonância (só quando há ressonância) |
-| λ₃, λ₄ | amarelo: o potencial tem um segundo poço; vermelho: o potencial não é confinante |
+| *b* | azul: subamortecido; laranja: superamortecido; marcas em 0 e no valor crítico 2*M*ω₀ |
+| *M*, *k* (ou *L*, *g*) | a mesma fronteira vista de cada parâmetro, com marca no seu valor crítico |
+| *g* | marcas na Lua, na Terra e em Júpiter |
+| ω | marcas em ω₀ e em ω_R; faixa verde de ω₋ a ω₊: potência absorvida acima de metade da máxima (largura 2γ) |
+| λ₃, λ₄ | cor da própria barra: estável (um só poço); âmbar: biestável (dois poços); vermelho: instável (o potencial não confina) |
+| *F*₀, *x*₀, *p*₀, λ₃, λ₄, *t* | marca em 0 |
 
-As marcas de amortecimento crítico e de ressonância prendem o cursor da barra, para que o valor exato possa ser
-escolhido; clicar no rótulo de uma marca também o escolhe. Com termos anarmônicos essas marcas continuam se
-referindo à parte linear: valem para pequenas amplitudes.
+As marcas prendem o cursor da barra, para que o valor exato possa ser escolhido; clicar no rótulo de uma marca
+também o escolhe. Com termos anarmônicos, e no pêndulo, as marcas de amortecimento e de ressonância referem-se à
+parte linear: valem para pequenas amplitudes.
 
 ## Arquivos
 
-    index.html            a página
+    index.html            a página, com o texto das deduções e das referências
     css/estilo.css        estilo; todas as cores estão definidas no início, para os temas claro e escuro
-    js/fisica.js          o modelo: grandezas derivadas, potencial, equilíbrios, Runge–Kutta, solução analítica
+    js/fisica.js          o modelo: grandezas derivadas, potencial, equilíbrios, soluções fechadas (inclusive
+                          funções elípticas), Runge–Kutta e a escolha do passo
     js/formulas.js        equação e solução em LaTeX; formatação dos números
-    js/controles.js       barra deslizante com segmentos e marcas
+    js/controles.js       barra deslizante com segmentos e marcas; barra fina dos intervalos do diagrama
     js/graficos.js        os três gráficos (canvas)
     js/app.js             controles, exemplos, animação: o ponto de partida para mudar a página
     tests/teste_fisica.js testes do modelo
@@ -102,11 +141,18 @@ início de `js/app.js`. Um exemplo novo é uma linha a mais nessa lista.
 
     node tests/teste_fisica.js
 
-Precisa apenas do node. Os testes verificam que: as fórmulas analíticas satisfazem a equação de movimento e as
-condições iniciais; a solução numérica coincide com elas em todos os regimes, livres e forçados; a energia se
-conserva sem amortecimento nem força, também com termos anarmônicos; o período do oscilador quártico é o da
-integral *T* = 4 ∫₀ᵃ d*x* / √(2(*E* − *V*)/*M*); a amplitude estacionária é máxima em ω_R; os equilíbrios e sua
-estabilidade; o escape pela barreira do potencial cúbico; e que todas as fórmulas exibidas são LaTeX válido.
+Precisa apenas do node. São 18 testes. Verificam que: as fórmulas do oscilador linear satisfazem a equação de
+movimento e as condições iniciais, e a integração numérica coincide com elas em todos os regimes, livres e
+forçados; a amplitude estacionária é máxima em ω_R e a potência absorvida cai à metade em ω₋ e ω₊; os valores
+críticos de cada parâmetro; a energia se conserva sem atrito nem força externa, também com termos anarmônicos; o
+período do oscilador quártico é o da integral *T* = 4 ∫₀ᵃ d*x* / √(2(*E* − *V*)/*M*); a frequência a pequena
+amplitude segue a correção de Landau e Lifshitz (§28); os equilíbrios e sua estabilidade; o escape pela barreira
+do potencial cúbico; as funções elípticas coincidem com a quadratura direta; a solução exata do pêndulo satisfaz
+a equação, conserva a energia e coincide com a integração numérica na oscilação, na rotação e na separatriz; o
+período do pêndulo e seu limite harmônico; o passo é reduzido quando o movimento é rápido; as barras percorrem
+os extremos do intervalo e os múltiplos do passo; e todas as fórmulas exibidas são LaTeX válido.
+
+Os testes cobrem o modelo e as fórmulas. A página em si (gráficos, controles) não tem testes automáticos.
 
 ## Licença
 

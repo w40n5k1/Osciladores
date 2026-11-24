@@ -9,32 +9,33 @@
   --fundo: #f4f3ef;        /* page */
   --painel: #fcfcfb;       /* panels and plot surface */
   --tinta: #0b0b0b;        /* text */
-  --tinta-2: #52514e;      /* secondary text, axis labels */
+  --tinta-2: #52514e;      /* secondary text, axis labels, arrows of velocity and force */
   --tinta-3: #8a8983;      /* separatrix, hints */
   --borda: #dcdad4;
   --grade: #ecebe6;        /* grid lines */
   --eixo: #b9b7b0;         /* plot frame and zero lines */
   --nivel: #cfcdc6;        /* curves of constant energy */
-  --trilho: #e2e0da;       /* slider bar */
+  --trilho: #e2e0da;       /* slider bar; on the bars of the anharmonic terms, a potential with a single well */
   --serie-1: #2a78d6;      /* trajectory, total energy; underdamped */
   --serie-2: #eb6834;      /* kinetic energy, transient; overdamped */
   --serie-3: #1baf7a;      /* potential energy, steady state; resonance */
   --pocos: #eda100;        /* potential with two wells */
   --escape: #e34948;       /* potential that does not confine */
+  --forca: #e34948;        /* arrow of the external force */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --fundo: #121211; --painel: #1a1a19; --tinta: #f0efec; --tinta-2: #c3c2b7; --tinta-3: #8b8a82;
     --borda: #34332f; --grade: #262624; --eixo: #55544e; --nivel: #403f3a; --trilho: #34332f;
-    --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --pocos: #c98500; --escape: #e66767;
+    --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --pocos: #c98500; --escape: #e66767; --forca: #e66767;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --fundo: #121211; --painel: #1a1a19; --tinta: #f0efec; --tinta-2: #c3c2b7; --tinta-3: #8b8a82;
   --borda: #34332f; --grade: #262624; --eixo: #55544e; --nivel: #403f3a; --trilho: #34332f;
-  --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --pocos: #c98500; --escape: #e66767;
+  --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --pocos: #c98500; --escape: #e66767; --forca: #e66767;
   color-scheme: dark;
 }
 
@@ -53,6 +54,7 @@ body {
 h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; text-wrap: balance; }
 h2 { margin: 0 0 6px; font-size: 13px; font-weight: 650; }
 p { margin: 0; }
+a { color: var(--serie-1); }
 .mat { font-family: "KaTeX_Math", "Times New Roman", serif; font-style: italic; font-size: 1.08em; }
 .dica { color: var(--tinta-2); font-size: 12.5px; }
 
@@ -65,7 +67,7 @@ select, button {
   border: 1px solid var(--borda); border-radius: 6px; padding: 5px 10px;
 }
 select { max-width: 100%; }
-button { cursor: pointer; min-width: 96px; }
+button { cursor: pointer; }
 button:hover, select:hover { border-color: var(--tinta-3); }
 :focus-visible { outline: 2px solid var(--serie-1); outline-offset: 2px; }
 
@@ -75,29 +77,56 @@ main { display: grid; gap: 12px; }
 /* Top row: controls, phase diagram, energy. */
 .topo { display: grid; gap: 12px; grid-template-columns: 300px minmax(0, 1.25fr) minmax(0, 1fr); align-items: stretch; }
 .fase, .energia { display: flex; flex-direction: column; gap: 6px; }
-.fase canvas { flex: 1 1 auto; min-height: 360px; cursor: crosshair; touch-action: none; }
-.energia canvas { flex: 1 1 auto; min-height: 260px; cursor: ew-resize; touch-action: pan-y; }
 canvas { display: block; width: 100%; height: 300px; }
-.potencial { color: var(--tinta-2); font-size: 12.5px; overflow-x: auto; }
+.energia canvas { flex: 1 1 auto; min-height: 280px; cursor: ew-resize; touch-action: pan-y; }
+.potencial { color: var(--tinta-2); font-size: 12.5px; overflow-x: auto; overflow-y: hidden; }
+.titulo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.opcao, .legenda label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--tinta-2); font-size: 12.5px; }
+input[type="checkbox"] { accent-color: var(--serie-1); margin: 0; }
+
+/* The phase diagram with the two thin sliders that set its ranges: p at the left, x underneath.  The
+   paddings line the sliders up with the plot area inside the canvas (set from the margins of the plot). */
+.diagrama {
+  flex: 1 1 auto; min-height: 380px; display: grid; gap: 2px;
+  grid-template-columns: 14px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 14px;
+}
+.diagrama canvas { height: 100%; min-height: 0; cursor: crosshair; touch-action: none; }
+.escala-lado { padding-top: var(--margem-t, 24px); padding-bottom: var(--margem-b, 34px); }
+.escala-base { padding-left: var(--margem-l, 46px); padding-right: var(--margem-r, 12px); }
+.escala { position: relative; height: 14px; cursor: pointer; touch-action: none; border-radius: 7px; }
+.escala.vertical { width: 14px; height: 100%; }
+.escala-trilho { position: absolute; left: 0; right: 0; top: 5.5px; height: 3px; border-radius: 2px; background: var(--trilho); }
+.escala.vertical .escala-trilho { left: 5.5px; right: auto; top: 0; bottom: 0; width: 3px; height: auto; }
+.escala-botao {
+  position: absolute; top: 1px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%;
+  background: var(--painel); border: 2px solid var(--tinta-2);
+}
+.escala.vertical .escala-botao { top: auto; left: 1px; margin-left: 0; margin-bottom: -6px; }
+.escala:hover .escala-botao, .escala:focus-visible .escala-botao { border-color: var(--tinta); }
 
 /* Legends. */
 .legenda { display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 0; padding: 0; list-style: none; color: var(--tinta-2); font-size: 12.5px; }
 .legenda li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.legenda label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
 .linha { display: inline-block; width: 20px; height: 0; border-top: 2px solid currentColor; }
 .linha.grossa { border-top-width: 3px; }
 .linha.tracejada { border-top-style: dashed; }
 .serie-1 { color: var(--serie-1); } .serie-2 { color: var(--serie-2); } .serie-3 { color: var(--serie-3); }
-.linha.nivel { color: var(--nivel); } .linha.tinta { color: var(--tinta); border-top-width: 1.5px; } .linha.tinta-3 { color: var(--tinta-3); border-top-width: 1.5px; }
+.tinta { color: var(--tinta); } .tinta-2 { color: var(--tinta-2); } .tinta-3 { color: var(--tinta-3); } .forca { color: var(--forca); }
+.linha.nivel { color: var(--nivel); } .linha.tinta, .linha.tinta-3 { border-top-width: 1.5px; }
 .ponto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--tinta); }
 .ponto.cheio { background: var(--tinta); }
 .amostra { display: inline-block; width: 14px; height: 6px; border-radius: 3px; }
+.amostra.neutro { background: var(--trilho); outline: 1px solid var(--eixo); }
+.seta { flex: none; }
+.legenda .katex { font-size: 1.05em; }
 
 /* Controls: label, value, and a bar with colored segments and marks under the slider. */
-.controles { display: flex; flex-direction: column; gap: 10px; }
-#controles { display: flex; flex-direction: column; gap: 4px; }
+#controles { display: flex; flex-direction: column; gap: 5px; }
 fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 legend { padding: 0; margin-bottom: 1px; color: var(--tinta-2); font-size: 11px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+.alternancia { display: flex; gap: 2px; padding: 2px; margin-bottom: 5px; border: 1px solid var(--borda); border-radius: 8px; }
+.alternancia button { flex: 1 1 auto; border: 0; border-radius: 6px; padding: 4px 6px; background: transparent; color: var(--tinta-2); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.alternancia button[aria-checked="true"] { background: var(--tinta); color: var(--painel); }
 .controle { padding-bottom: 1px; }
 .rotulo { display: flex; align-items: baseline; gap: 7px; line-height: 1.25; }
 .rotulo .simbolo { min-width: 20px; }
@@ -117,6 +146,7 @@ legend { padding: 0; margin-bottom: 1px; color: var(--tinta-2); font-size: 11px;
   font-style: normal; font-size: 10.5px; line-height: 1; white-space: nowrap; color: var(--tinta-2);
   padding: 1px 3px; cursor: pointer; pointer-events: auto;
 }
+.marca span:hover { color: var(--tinta); text-decoration: underline; }
 .marca.esquerda span { left: -3px; transform: none; }
 .marca.direita span { left: auto; right: -3px; transform: none; }
 .marca sub { font-size: 0.8em; }
@@ -136,11 +166,16 @@ legend { padding: 0; margin-bottom: 1px; color: var(--tinta-2); font-size: 11px;
   width: 12px; height: 12px; border-radius: 50%;
   background: var(--painel); border: 2px solid var(--tinta); box-shadow: 0 0 0 2px var(--painel);
 }
-.legenda-barras { padding-top: 8px; border-top: 1px solid var(--borda); }
+/* Caption of a group of bars: what the colors of their segments mean. */
+.legenda.do-grupo { gap: 2px 12px; margin: 1px 0 3px; font-size: 11.5px; }
+.legenda.do-grupo li { white-space: normal; }
 
-/* Time controls. */
-.transporte { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-block: 8px; }
-.transporte input[type="range"] { flex: 1 1 220px; min-width: 0; accent-color: var(--serie-1); }
+/* Time: play and pause, the time bar, speed, and the values under the cursor. */
+.transporte { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding-block: 8px; }
+.botao-icone { display: grid; place-items: center; width: 42px; height: 36px; padding: 0; flex: none; }
+.botao-icone svg { fill: currentColor; }
+.botao-icone[data-estado="tocando"] .icone-tocar, .botao-icone[data-estado="parado"] .icone-pausar { display: none; }
+.tempo-barra { flex: 1 1 300px; min-width: 0; }
 .leitura { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 2px 26px; font-variant-numeric: tabular-nums; color: var(--tinta-2); font-size: 13px; }
 .leitura span { white-space: nowrap; }
 
@@ -168,17 +203,36 @@ legend { padding: 0; margin-bottom: 1px; color: var(--tinta-2); font-size: 11px;
 .etiqueta[data-regime="over"]::before { background: var(--serie-2); }
 .etiqueta[data-regime="critical"]::before { background: var(--tinta); }
 
+/* Tabs with the derivations and the references. */
+.abas-lista { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--borda); }
+.abas-lista button {
+  border: 0; border-bottom: 2px solid transparent; border-radius: 0; margin-bottom: -1px; padding: 6px 12px;
+  background: transparent; color: var(--tinta-2); font-weight: 600;
+}
+.abas-lista button[aria-selected="true"] { color: var(--tinta); border-bottom-color: var(--tinta); }
+.texto { max-width: 88ch; font-size: 14.5px; line-height: 1.6; }
+.texto h3 { margin: 22px 0 6px; font-size: 15px; font-weight: 650; }
+.texto > h3:first-child, .texto > .dica + h3 { margin-top: 10px; }
+.texto p { margin: 8px 0; }
+.texto .dica { font-size: 13px; }
+.texto ul { margin: 8px 0; padding-left: 1.3em; }
+.texto li { margin: 5px 0; }
+.texto div.m { margin: 10px 0; padding: 2px 0; overflow-x: auto; overflow-y: hidden; }
+.texto div.m .katex-display { margin: 0; }
+.texto .katex { font-size: 1.06em; }
+
 .rodape { margin-top: 14px; color: var(--tinta-3); font-size: 12px; }
 
 /* Narrower screens: the energy panel goes under the phase diagram, then everything in one column. */
 @media (max-width: 1180px) {
   .topo { grid-template-columns: 290px minmax(0, 1fr); }
   .energia { grid-column: 1 / -1; }
-  .energia canvas { min-height: 0; height: 240px; flex: none; }
+  .energia canvas { min-height: 0; height: 280px; flex: none; }
   .solucao { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
   .topo { grid-template-columns: minmax(0, 1fr); }
-  .fase canvas { min-height: 0; height: min(90vw, 420px); flex: none; }
+  .diagrama { min-height: 0; height: min(92vw, 420px); flex: none; }
   h1 { font-size: 18px; }
+  .texto { font-size: 14px; }
 }

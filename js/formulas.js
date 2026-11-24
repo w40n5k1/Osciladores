@@ -5,7 +5,10 @@
  *
  *   equation(P)                {symbolic, numeric}: the equation with only the terms that are present
  *   solution(P, D, an)         {regime, formula, definitions, values, note}: the closed form when there is one
- *   tex(v), text(v)            a number as LaTeX and as plain text
+ *   potential(P)               V(x) = ... of the system
+ *   method(step)               the sentence that says how the curves were computed
+ *   tex(v), text(v), fixed(v, decimals)     a number as LaTeX and as plain text
+ *   superscript(n)                          an integer in superscript characters (exponents in plain text)
  *
  * P is the parameter object of fisica.js, D = Fisica.derived(P) and an = Fisica.analytic(P, x0, p0).
  * The texts are in Portuguese; the sine is written "sen".
@@ -19,28 +22,38 @@
   /** Mantissa (as a string with a decimal point) and power of ten of v at `sig` significant figures. */
   function split(v, sig) {
     if (v === 0 || !isFinite(v)) return { m: isFinite(v) ? '0' : String(v), e: 0 };
-    const e = Math.floor(Math.log10(Math.abs(v)));
-    if (e >= 4 || e < -3) return { m: (v / Math.pow(10, e)).toFixed(sig - 1), e };
+    let e = Math.floor(Math.log10(Math.abs(v)));
+    if (e >= 4 || e < -3) {
+      let m = v / Math.pow(10, e);
+      if (Math.abs(Number(m.toFixed(sig - 1))) >= 10) { m /= 10; e += 1; }   // 9.999 rounds to 10.0: one more power of ten
+      return { m: m.toFixed(sig - 1), e };
+    }
     return { m: v.toFixed(Math.max(0, sig - 1 - e)), e: 0 };
   }
 
   /** v as LaTeX: decimal comma, `sig` significant figures, powers of ten beyond 10^4 and below 10^-3. */
   function tex(v, sig) {
+    if (!isFinite(v)) return (v < 0 ? '-' : '') + '\\infty';
     const s = split(v, sig || 3);
     const m = s.m.replace('.', '{,}');
     return s.e ? m + '\\times 10^{' + s.e + '}' : m;
   }
 
+  /** An integer in superscript characters: the exponent of a power of ten in plain text. */
+  function superscript(n) {
+    return String(n).replace(/./g, c => (c === '-' ? '⁻' : '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c]));
+  }
+
   /** v as plain text, same conventions as tex(). */
   function text(v, sig) {
     const s = split(v, sig || 3);
-    const m = s.m.replace('.', ',').replace('-', '\u2212');
-    return s.e ? m + '\u00d710^' + String(s.e).replace('-', '\u2212') : m;
+    const m = s.m.replace('.', ',').replace('-', '−');
+    return s.e ? m + '×10' + superscript(s.e) : m;
   }
 
   /** v with a fixed number of decimal places, as plain text. */
   function fixed(v, decimals) {
-    return v.toFixed(decimals).replace('.', ',').replace('-', '\u2212');
+    return v.toFixed(decimals).replace('.', ',').replace('-', '−');
   }
 
   /** Joins signed terms [{c, t}] as "c1 t1 + c2 t2 - ...", writing each coefficient with tex(). */
@@ -53,26 +66,47 @@
     return out;
   }
 
+  const unit = u => '\\ \\mathrm{' + u + '}';
+
   /**
    * The equation of motion, with the terms whose coefficient is zero left out.
    * `symbolic` uses the symbols of the controls; `numeric` has their current values (SI units).
    */
   function equation(P) {
+    const pendulum = P.system === 'pendulum';
     let symbolic = 'M\\,\\ddot{x}';
     const terms = [{ c: P.M, t: '\\ddot{x}' }];
     if (P.b !== 0) { symbolic += ' + b\\,\\dot{x}'; terms.push({ c: P.b, t: '\\dot{x}' }); }
-    symbolic += ' + k\\,x'; terms.push({ c: P.k, t: 'x' });
-    if (P.l3 !== 0) { symbolic += ' + \\lambda_3\\,x^2'; terms.push({ c: P.l3, t: 'x^2' }); }
-    if (P.l4 !== 0) { symbolic += ' + \\lambda_4\\,x^3'; terms.push({ c: P.l4, t: 'x^3' }); }
+    if (pendulum) {
+      symbolic += ' + M g\\,\\operatorname{sen}\\!\\left(\\dfrac{x}{L}\\right)';
+      terms.push({ c: P.M * P.g, t: '\\operatorname{sen}\\!\\left(\\dfrac{x}{' + tex(P.L) + '}\\right)' });
+    } else {
+      symbolic += ' + k\\,x'; terms.push({ c: P.k, t: 'x' });
+      if (P.l3 !== 0) { symbolic += ' + \\lambda_3\\,x^2'; terms.push({ c: P.l3, t: 'x^2' }); }
+      if (P.l4 !== 0) { symbolic += ' + \\lambda_4\\,x^3'; terms.push({ c: P.l4, t: 'x^3' }); }
+    }
     const rhsSymbolic = P.F0 !== 0 ? (P.w !== 0 ? 'F_0\\cos(\\omega t)' : 'F_0') : '0';
     const rhsNumeric = P.F0 !== 0 ? tex(P.F0) + (P.w !== 0 ? '\\cos(' + tex(P.w) + '\\,t)' : '') : '0';
     return { symbolic: symbolic + ' = ' + rhsSymbolic, numeric: sum(terms) + ' = ' + rhsNumeric };
   }
 
+  /** The potential energy of the system, as LaTeX. */
+  function potential(P) {
+    if (P.system === 'pendulum') return 'V(x) = M g L\\left[1 - \\cos\\!\\left(\\dfrac{x}{L}\\right)\\right]';
+    return 'V(x) = \\tfrac{1}{2}k\\,x^2 + \\tfrac{1}{3}\\lambda_3\\,x^3 + \\tfrac{1}{4}\\lambda_4\\,x^4';
+  }
+
+  /** How the curves were computed: `step` is the Runge-Kutta step in seconds, or null for a closed form. */
+  function method(step) {
+    if (step === null) return 'Calculado analiticamente.';
+    const ms = step * 1000, plain = v => String(Number(v.toPrecision(2))).replace('.', ',');
+    return 'Integração numérica: Runge–Kutta de 4ª ordem, passo de ' + (ms < 0.1 ? plain(ms * 1000) + ' µs' : plain(ms) + ' ms') + '.';
+  }
+
   const REGIME_NAME = {
     none: 'sem amortecimento',
     under: 'subamortecido',
-    critical: 'amortecimento cr\u00edtico',
+    critical: 'amortecimento crítico',
     over: 'superamortecido',
   };
 
@@ -83,27 +117,8 @@
     over: 'C_1\\,e^{-(\\gamma-q)\\,t} + C_2\\,e^{-(\\gamma+q)\\,t}',
   };
 
-  /**
-   * The closed-form solution, for display.
-   *   regime        name of the damping regime of the linear part
-   *   formula       x(t) = ... in LaTeX, or null when there is no closed form (l3 or l4 different from zero)
-   *   definitions   LaTeX of the definitions of the symbols in the formula
-   *   values        LaTeX of the current values of those symbols, with units
-   *   note          a sentence in Portuguese shown under the formula
-   */
-  function solution(P, D, an) {
-    const out = { regime: REGIME_NAME[D.regime], formula: null, definitions: [], values: [], note: '' };
-    const unit = u => '\\ \\mathrm{' + u + '}';
-    out.values.push('\\omega_0 = ' + tex(D.w0) + unit('rad/s'));
-    if (D.gamma > 0) out.values.push('\\gamma = ' + tex(D.gamma) + unit('s^{-1}'), 'Q = ' + tex(D.Q));
-
-    if (!an) {
-      out.note = 'Com termos anarm\u00f4nicos n\u00e3o h\u00e1 solu\u00e7\u00e3o em fun\u00e7\u00f5es elementares: a curva \u00e9 a solu\u00e7\u00e3o ' +
-        'num\u00e9rica (Runge\u2013Kutta de 4\u00aa ordem). \u03c9\u2080, \u03b3 e Q referem-se \u00e0 parte linear, ' +
-        'v\u00e1lida para pequenas amplitudes.';
-      return out;
-    }
-
+  /** Closed form of the linear oscillator: fills formula, definitions, values and note of `out`. */
+  function linear(out, P, D, an) {
     let formula = 'x(t) = ' + HOMOGENEOUS[an.homogeneous];
     out.definitions.push('\\omega_0 = \\sqrt{k/M}');
     if (D.regime !== 'none') out.definitions.push('\\gamma = \\dfrac{b}{2M}');
@@ -141,20 +156,81 @@
     }
     out.formula = formula;
 
-    const notes = [];
-    notes.push('C\u2081 e C\u2082 s\u00e3o fixadas pelas condi\u00e7\u00f5es iniciais x(0) = x\u2080 e p(0) = p\u2080.');
+    const notes = ['C₁ e C₂ são fixadas pelas condições iniciais x(0) = x₀ e p(0) = p₀.'];
     if (an.particular === 'steady' && P.w !== 0 && D.gamma > 0) {
-      notes.push('O primeiro termo \u00e9 o transiente, que decai; o segundo \u00e9 o regime estacion\u00e1rio.');
+      notes.push('O primeiro termo é o transiente, que decai; o segundo é o regime estacionário.');
     }
     if (an.particular === 'steady' && P.w !== 0 && D.gamma === 0) {
-      notes.push('Sem amortecimento o primeiro termo n\u00e3o decai: as duas frequ\u00eancias se superp\u00f5em (batimentos quando \u03c9 \u2248 \u03c9\u2080).');
+      notes.push('Sem amortecimento o primeiro termo não decai: as duas frequências se superpõem (batimentos quando ω ≈ ω₀).');
     }
     if (an.particular === 'resonant') {
-      notes.push('Resson\u00e2ncia sem amortecimento: a amplitude cresce linearmente com o tempo.');
+      notes.push('Ressonância sem amortecimento: a amplitude cresce linearmente com o tempo.');
     }
     out.note = notes.join(' ');
+  }
+
+  /** Exact solution of the pendulum without friction or forcing (see Fisica.analytic). */
+  function pendulum(out, P, D, an) {
+    // The formulas are written for the well in which the motion starts; `shifted` is x measured from its bottom.
+    const shifted = an.base === 0 ? 'x(t)' : 'x(t) - x_n';
+    if (an.base !== 0) out.values.push('x_n = ' + tex(an.base) + unit('m'));
+    const time = (rate) => (an.sign < 0 ? '-' : '') + rate + ' t + u_0';
+    out.definitions.push('\\omega_0 = \\sqrt{g/L}', '\\kappa^2 = \\dfrac{E}{2MgL}');
+    out.values.push('\\kappa = ' + tex(an.kappa, 4));
+    if (isFinite(an.u0)) out.values.push('u_0 = ' + tex(an.u0));
+    const harmonicPeriod = '2\\pi/\\omega_0 = ' + tex(2 * Math.PI / D.w0) + unit('s');
+
+    if (an.motion === 'libration') {
+      out.formula = '\\operatorname{sen}\\dfrac{' + shifted + '}{2L} = \\kappa\\,\\operatorname{sn}(\\omega_0 t + u_0,\\ \\kappa)';
+      out.definitions.push('T = \\dfrac{4K(\\kappa)}{\\omega_0}');
+      out.values.push('\\theta_{\\text{máx}} = ' + tex(an.amplitude) + unit('rad'), 'T = ' + tex(an.period) + unit('s'), harmonicPeriod);
+      out.note = 'Solução exata, em funções elípticas de Jacobi: sn é o seno elíptico de módulo κ e K(κ) a integral elíptica ' +
+        'completa de primeira espécie. κ = sen(θmáx/2), sendo θmáx a amplitude do ângulo θ = x/L; u₀ é fixado pelas ' +
+        'condições iniciais. ' +
+        'Para κ → 0, sn → sen e T → 2π/ω₀: o oscilador harmônico.';
+    } else if (an.motion === 'rotation') {
+      out.formula = shifted + ' = 2L\\,\\operatorname{am}(' + time('\\kappa\\,\\omega_0') + ',\\ 1/\\kappa)';
+      out.definitions.push('T_{\\text{volta}} = \\dfrac{2K(1/\\kappa)}{\\kappa\\,\\omega_0}');
+      out.values.push('T_{\\text{volta}} = ' + tex(an.period) + unit('s'), harmonicPeriod);
+      out.note = 'Solução exata: am é a amplitude de Jacobi, de módulo 1/κ. Com κ > 1 a energia supera a da posição ' +
+        'invertida (E > 2MgL) e o pêndulo gira sempre no mesmo sentido; u₀ é fixado pelas condições iniciais.';
+    } else {
+      out.formula = '\\operatorname{sen}\\dfrac{' + shifted + '}{2L} = \\tanh(' + time('\\omega_0') + ')';
+      out.note = 'Separatriz: a energia é exatamente a da posição invertida (E = 2MgL, κ = 1). O pêndulo se aproxima ' +
+        'dela sem nunca a alcançar; o período é infinito.';
+    }
+  }
+
+  /**
+   * The closed-form solution, for display.
+   *   regime        name of the damping regime of the linear part
+   *   formula       the solution in LaTeX, or null when the page has no closed form for it
+   *   definitions   LaTeX of the definitions of the symbols in the formula
+   *   values        LaTeX of the current values of those symbols, with units
+   *   note          a sentence in Portuguese shown under the formula
+   */
+  function solution(P, D, an) {
+    const out = { regime: REGIME_NAME[D.regime], formula: null, definitions: [], values: [], note: '' };
+    out.values.push('\\omega_0 = ' + tex(D.w0) + unit('rad/s'));
+    if (D.gamma > 0) out.values.push('\\gamma = ' + tex(D.gamma) + unit('s^{-1}'), 'Q = ' + tex(D.Q));
+
+    if (an && an.kind === 'linear') linear(out, P, D, an);
+    else if (an && an.kind === 'pendulum') pendulum(out, P, D, an);
+    else if (an && an.kind === 'rest') {
+      out.formula = 'x(t) = x_0';
+      out.note = an.stable
+        ? 'A massa está em repouso sobre um ponto de equilíbrio estável e aí permanece.'
+        : 'A massa está em repouso sobre um ponto de equilíbrio instável: aí permanece, mas qualquer perturbação a afasta.';
+    } else if (P.system === 'pendulum') {
+      out.note = 'Com amortecimento ou força externa a curva é a solução numérica (Runge–Kutta de 4ª ordem). ' +
+        'ω₀, γ e Q referem-se à aproximação harmônica, k = Mg/L, válida para |x| ≪ L.';
+    } else {
+      out.note = 'Com termos anarmônicos não há solução em funções elementares: a curva é a solução ' +
+        'numérica (Runge–Kutta de 4ª ordem). ω₀, γ e Q referem-se à parte linear, ' +
+        'válida para pequenas amplitudes.';
+    }
     return out;
   }
 
-  return { tex, text, fixed, equation, solution, REGIME_NAME };
+  return { tex, text, fixed, superscript, equation, solution, potential, method, REGIME_NAME };
 });

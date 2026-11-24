@@ -4,8 +4,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Osciladores</title>
-<meta name="description" content="Osciladores harmônicos e anarmônicos, livres e forçados: espaço de fase, energia, equação de movimento e solução.">
+<title>Osciladores: harmônicos, anarmônicos e quase-harmônicos</title>
+<meta name="description" content="Oscilador harmônico e anarmônico, livre e forçado, e pêndulo: espaço de fase, energia, equação de movimento e solução.">
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
 <link rel="stylesheet" href="css/estilo.css">
 </head>
@@ -13,8 +13,8 @@
 
 <header class="cabecalho">
   <div>
-    <h1>Osciladores harmônicos e anarmônicos</h1>
-    <p>Oscilações livres e forçadas, com amortecimento · Mecânica e Termodinâmica, IMPA Tech</p>
+    <h1>Osciladores: harmônicos, anarmônicos e quase-harmônicos</h1>
+    <p>Oscilador com amortecimento, termos anarmônicos e força externa; pêndulo · Mecânica e Termodinâmica, IMPA Tech</p>
   </div>
   <label class="exemplos">Exemplos
     <select id="exemplos" aria-label="Exemplos"></select>
@@ -26,18 +26,19 @@
 
     <aside class="painel controles" aria-label="Parâmetros">
       <div id="controles"></div>
-      <ul class="legenda legenda-barras" aria-label="Legenda das barras">
-        <li><i class="amostra sub"></i>subamortecido</li>
-        <li><i class="amostra super"></i>superamortecido</li>
-        <li><i class="amostra res"></i><span>ressonância, <span class="mat">ω</span><sub>0</sub> ± <span class="mat">γ</span></span></li>
-        <li><i class="amostra pocos"></i>dois poços</li>
-        <li><i class="amostra escape"></i>potencial não confinante</li>
-      </ul>
     </aside>
 
-    <section class="painel fase" aria-label="Espaço de fase">
-      <h2>Espaço de fase</h2>
-      <canvas id="fase"></canvas>
+    <section class="painel fase" id="painelFase" aria-label="Espaço de fase">
+      <div class="titulo">
+        <h2>Espaço de fase</h2>
+        <label class="opcao"><input type="checkbox" id="ajustar" checked> ajustar à curva</label>
+      </div>
+      <div class="diagrama">
+        <div class="escala-lado" id="escalaP"></div>
+        <canvas id="fase"></canvas>
+        <div></div>
+        <div class="escala-base" id="escalaX"></div>
+      </div>
       <ul class="legenda">
         <li><i class="linha serie-1"></i>trajetória</li>
         <li><i class="linha nivel"></i>energia constante</li>
@@ -46,7 +47,13 @@
         <li><i class="ponto cheio"></i>equilíbrio estável</li>
         <li id="legInstavel"><i class="ponto vazio"></i>instável</li>
       </ul>
-      <p class="dica">Arraste no diagrama para escolher a condição inicial (<span class="mat">x</span><sub>0</sub>, <span class="mat">p</span><sub>0</sub>).</p>
+      <ul class="legenda">
+        <li><svg class="seta tinta-2" viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><path d="M1 5h15" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M21 5l-6.5-3v6z" fill="currentColor"/></svg><span>velocidade, <span class="m">\dot x</span></span></li>
+        <li><svg class="seta tinta-2" viewBox="0 0 10 18" width="10" height="18" aria-hidden="true"><path d="M5 17V6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5 1l-3 6.5h6z" fill="currentColor"/></svg><span>força resultante, <span class="m">\dot p</span></span></li>
+        <li><svg class="seta tinta" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M2 16L12.5 5.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M17 1l-7 2.6 4.4 4.4z" fill="currentColor"/></svg><span>vetor tangente, <span class="m">(\dot x,\ \dot p)</span></span></li>
+        <li id="legForca"><svg class="seta forca" viewBox="0 0 12 18" width="12" height="18" aria-hidden="true"><path d="M6 17V8" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M6 0.5l-5 8.5h10z" fill="currentColor"/></svg><span>força externa, <span class="m">F_0\cos(\omega t)</span></span></li>
+      </ul>
+      <p class="dica">Arraste no diagrama para escolher a condição inicial (<span class="mat">x</span><sub>0</sub>, <span class="mat">p</span><sub>0</sub>); ao soltar, o movimento recomeça. As setas mostram quanto <span class="mat">x</span> e <span class="mat">p</span> variariam em <span id="escalaSetas"></span>, mantidas as taxas do instante. As barras finas, embaixo e à esquerda, definem os intervalos de <span class="mat">x</span> e de <span class="mat">p</span>.</p>
     </section>
 
     <aside class="painel energia" aria-label="Energia">
@@ -57,6 +64,7 @@
         <li><i class="linha serie-2"></i><span>cinética, <span class="mat">p</span>²/2<span class="mat">M</span></span></li>
         <li><i class="linha serie-3"></i><span>potencial, <span class="mat">V</span>(<span class="mat">x</span>)</span></li>
       </ul>
+      <p class="dica">No canto, o potencial no intervalo de <span class="mat">x</span> do diagrama de fase: o ponto marca a posição atual; a linha horizontal, a energia total; o segmento vertical entre os dois, a energia cinética.</p>
       <div class="potencial" id="potencial"></div>
       <p class="dica" id="aviso" hidden></p>
     </aside>
@@ -64,9 +72,13 @@
   </div>
 
   <div class="painel transporte" aria-label="Tempo">
-    <button id="tocar" type="button">Pausar</button>
-    <button id="reiniciar" type="button">Reiniciar</button>
-    <input id="tempo" type="range" min="0" max="30" step="0.01" value="0" aria-label="Instante">
+    <button id="tocar" type="button" class="botao-icone" data-estado="tocando" aria-label="Pausar" title="Pausar">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <path class="icone-tocar" d="M7.5 4.5v15L20 12z"/>
+        <path class="icone-pausar" d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/>
+      </svg>
+    </button>
+    <div class="tempo-barra" id="tempoBarra"></div>
     <label class="velocidade">Velocidade
       <select id="velocidade" aria-label="Velocidade">
         <option value="0.25">0,25×</option>
@@ -94,18 +106,176 @@
       <h2><span class="mat">x</span>(<span class="mat">t</span>)</h2>
       <canvas id="solucao"></canvas>
       <ul class="legenda">
-        <li><i class="linha grossa serie-1"></i>numérica</li>
-        <li id="legAnalitica"><i class="linha tracejada tinta"></i>analítica</li>
+        <li><i class="linha grossa serie-1"></i><span id="nomeCurva">analítica</span></li>
         <li id="legTransiente"><i class="linha serie-2"></i><span id="nomeHomogenea">transiente</span></li>
         <li id="legParticular"><i class="linha serie-3"></i><span id="nomeParticular">regime estacionário</span></li>
         <li id="opcaoComponentes"><label><input type="checkbox" id="componentes" checked> mostrar os dois termos</label></li>
+        <li id="opcaoAproximacao"><label><input type="checkbox" id="aproximacao" checked><i class="linha tracejada tinta"></i>aproximação harmônica</label></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="painel abas" aria-label="Deduções e referências">
+    <div class="abas-lista" role="tablist" aria-label="Deduções e referências">
+      <button type="button" role="tab" id="abaDeducoes" aria-controls="painelDeducoes" aria-selected="true">Deduções</button>
+      <button type="button" role="tab" id="abaReferencias" aria-controls="painelReferencias" aria-selected="false" tabindex="-1">Referências</button>
+    </div>
+
+    <div class="texto" role="tabpanel" id="painelDeducoes" aria-labelledby="abaDeducoes">
+      <p class="dica">Notação: o ponto indica derivada em relação ao tempo. No oscilador, <span class="m">\omega_0 = \sqrt{k/M}</span>, <span class="m">\gamma = b/2M</span>, <span class="m">f = F_0/M</span> e <span class="m">v_0 = p_0/M</span>.</p>
+
+      <h3>1. Equação de movimento, espaço de fase e energia</h3>
+      <p>A segunda lei de Newton para a massa <span class="m">M</span>, sujeita à força conservativa <span class="m">-dV/dx</span>, ao atrito viscoso <span class="m">-b\dot x</span> e à força externa <span class="m">F_0\cos(\omega t)</span>, é</p>
+      <div class="m">M\ddot x = -\frac{dV}{dx} - b\,\dot x + F_0\cos(\omega t), \qquad V(x) = \tfrac12 k\,x^2 + \tfrac13\lambda_3\,x^3 + \tfrac14\lambda_4\,x^4 ,</div>
+      <p>ou seja, <span class="m">M\ddot x + b\,\dot x + k\,x + \lambda_3x^2 + \lambda_4x^3 = F_0\cos(\omega t)</span>.</p>
+      <p>Com o momento <span class="m">p = M\dot x</span>, a equação de segunda ordem equivale a duas de primeira ordem:</p>
+      <div class="m">\dot x = \frac{p}{M}, \qquad \dot p = -\frac{dV}{dx} - \frac{b}{M}\,p + F_0\cos(\omega t).</div>
+      <p>O estado do sistema é o ponto <span class="m">(x, p)</span> do espaço de fase, e <span class="m">(\dot x, \dot p)</span> é o vetor tangente à trajetória nesse ponto: suas componentes são a velocidade e a força resultante. No diagrama, são as duas setas finas cinza, a horizontal e a vertical; a terceira seta fina é a sua soma, e a seta vermelha é a parcela <span class="m">F_0\cos(\omega t)</span> da força. Sem atrito nem força externa, as equações são as de Hamilton, <span class="m">\dot x = \partial H/\partial p</span> e <span class="m">\dot p = -\partial H/\partial x</span>, com <span class="m">H = p^2/2M + V(x)</span>.</p>
+      <p>A energia <span class="m">E = p^2/2M + V(x)</span> varia segundo</p>
+      <div class="m">\frac{dE}{dt} = \dot x\left(M\ddot x + \frac{dV}{dx}\right) = -b\,\dot x^2 + F_0\cos(\omega t)\,\dot x .</div>
+      <p>O atrito só retira energia; a força externa pode fornecê-la ou retirá-la. Sem os dois, <span class="m">E</span> é constante e a trajetória percorre uma curva de nível de <span class="m">H</span> (as curvas cinza do diagrama).</p>
+      <p>Com <span class="m">\lambda_3 = \lambda_4 = 0</span> a equação é linear:</p>
+      <div class="m">\ddot x + 2\gamma\,\dot x + \omega_0^2\,x = f\cos(\omega t).</div>
+      <p>Vale então o princípio de superposição: a solução geral é a soma de uma solução particular com a solução geral da equação homogênea (<span class="m">f = 0</span>). Esta contém duas constantes, fixadas pelas condições iniciais <span class="m">x(0) = x_0</span> e <span class="m">\dot x(0) = v_0</span>.</p>
+
+      <h3>2. Oscilação livre sem amortecimento</h3>
+      <p>Em <span class="m">\ddot x + \omega_0^2x = 0</span>, a tentativa <span class="m">x = e^{rt}</span> dá <span class="m">r^2 + \omega_0^2 = 0</span>, isto é, <span class="m">r = \pm i\omega_0</span>. As combinações reais de <span class="m">e^{\pm i\omega_0t}</span> são</p>
+      <div class="m">x(t) = C_1\cos(\omega_0t) + C_2\operatorname{sen}(\omega_0t), \qquad C_1 = x_0, \quad C_2 = \frac{v_0}{\omega_0}.</div>
+      <p>De modo equivalente, <span class="m">x = a\cos(\omega_0t - \varphi)</span>, com <span class="m">a = \sqrt{C_1^2 + C_2^2}</span> e <span class="m">\tan\varphi = C_2/C_1</span>. A energia é <span class="m">E = \tfrac12 k\,a^2</span>, e a trajetória no espaço de fase é a elipse</p>
+      <div class="m">\frac{x^2}{a^2} + \frac{p^2}{(M\omega_0a)^2} = 1,</div>
+      <p>percorrida no sentido horário (onde <span class="m">p \gt 0</span>, <span class="m">x</span> cresce) em um período <span class="m">2\pi/\omega_0</span> que não depende da amplitude.</p>
+
+      <h3>3. Oscilação livre amortecida</h3>
+      <p>Em <span class="m">\ddot x + 2\gamma\dot x + \omega_0^2x = 0</span> a mesma tentativa leva a <span class="m">r^2 + 2\gamma r + \omega_0^2 = 0</span>:</p>
+      <div class="m">r = -\gamma \pm \sqrt{\gamma^2 - \omega_0^2}.</div>
+      <p>Há três casos.</p>
+      <p><b>Subamortecido</b> (<span class="m">\gamma \lt \omega_0</span>). As raízes são complexas, <span class="m">r = -\gamma \pm i\omega_1</span>, com <span class="m">\omega_1 = \sqrt{\omega_0^2 - \gamma^2}</span>:</p>
+      <div class="m">x(t) = e^{-\gamma t}\left[C_1\cos(\omega_1t) + C_2\operatorname{sen}(\omega_1t)\right], \qquad C_1 = x_0, \quad C_2 = \frac{v_0 + \gamma\,x_0}{\omega_1}.</div>
+      <p>(A segunda constante vem de <span class="m">\dot x(0) = -\gamma C_1 + \omega_1C_2</span>.) A massa oscila com frequência <span class="m">\omega_1 \lt \omega_0</span> e amplitude que decai como <span class="m">e^{-\gamma t}</span>; a trajetória espirala para a origem. Para <span class="m">\gamma \ll \omega_0</span> a energia decai como <span class="m">e^{-2\gamma t}</span>: em um período perde a fração <span class="m">2\pi/Q</span>, com <span class="m">Q = \omega_0/2\gamma</span>.</p>
+      <p><b>Superamortecido</b> (<span class="m">\gamma \gt \omega_0</span>). As raízes são reais e negativas, <span class="m">r = -(\gamma \mp q)</span>, com <span class="m">q = \sqrt{\gamma^2 - \omega_0^2}</span>:</p>
+      <div class="m">x(t) = C_1e^{-(\gamma-q)t} + C_2e^{-(\gamma+q)t}, \qquad C_1 = \frac{v_0 + (\gamma+q)\,x_0}{2q}, \quad C_2 = -\frac{v_0 + (\gamma-q)\,x_0}{2q}.</div>
+      <p>Não há oscilação: <span class="m">x</span> passa por zero no máximo uma vez. O retorno ao equilíbrio é dominado pela taxa menor, <span class="m">\gamma - q = \omega_0^2/(\gamma + q)</span>, que diminui quando o atrito aumenta.</p>
+      <p><b>Crítico</b> (<span class="m">\gamma = \omega_0</span>). A raiz é dupla e só fornece <span class="m">e^{-\gamma t}</span>. Procurando a segunda solução na forma <span class="m">x = u(t)\,e^{-\gamma t}</span>, obtém-se <span class="m">\ddot x + 2\gamma\dot x + \gamma^2x = \ddot u\,e^{-\gamma t} = 0</span>, logo <span class="m">u = C_1 + C_2t</span>:</p>
+      <div class="m">x(t) = (C_1 + C_2\,t)\,e^{-\gamma t}, \qquad C_1 = x_0, \quad C_2 = v_0 + \gamma\,x_0.</div>
+      <p>É o limite dos dois casos anteriores. Para <span class="m">\omega_0</span> dado, é o amortecimento crítico que dá o retorno mais rápido ao equilíbrio: a menor das taxas de decaimento vale <span class="m">\gamma</span> para <span class="m">\gamma \le \omega_0</span> e <span class="m">\gamma - q</span> para <span class="m">\gamma \ge \omega_0</span>, e seu máximo, <span class="m">\omega_0</span>, ocorre em <span class="m">\gamma = \omega_0</span>.</p>
+
+      <h3>4. Oscilação forçada</h3>
+      <p>Em <span class="m">\ddot x + 2\gamma\dot x + \omega_0^2x = f\cos(\omega t)</span>, tome-se <span class="m">x = \operatorname{Re} z</span>, com <span class="m">\ddot z + 2\gamma\dot z + \omega_0^2z = f\,e^{i\omega t}</span>. A tentativa <span class="m">z = \hat A\,e^{i\omega t}</span> dá</p>
+      <div class="m">\hat A = \frac{f}{\omega_0^2 - \omega^2 + 2i\gamma\omega} = A\,e^{-i\delta}, \qquad A = \frac{f}{\sqrt{(\omega_0^2-\omega^2)^2 + 4\gamma^2\omega^2}}, \quad \tan\delta = \frac{2\gamma\,\omega}{\omega_0^2-\omega^2} \quad (0 \le \delta \le \pi),</div>
+      <p>e portanto a solução particular</p>
+      <div class="m">x_p(t) = A\cos(\omega t - \delta).</div>
+      <p>A solução geral é <span class="m">x = x_h + x_p</span>, em que <span class="m">x_h</span> é a solução homogênea da seção 2 ou 3. As condições iniciais se aplicam à soma: as constantes de <span class="m">x_h</span> são as daquelas seções com <span class="m">x_0</span> e <span class="m">v_0</span> substituídos por</p>
+      <div class="m">x_0 - A\cos\delta \qquad \text{e} \qquad v_0 - A\,\omega\operatorname{sen}\delta .</div>
+      <p>Com amortecimento, <span class="m">x_h</span> decai (transiente) e resta <span class="m">x_p</span> (regime estacionário), que não depende das condições iniciais: no espaço de fase, a elipse de semieixos <span class="m">A</span> e <span class="m">M\omega A</span>.</p>
+      <p><b>Ressonância.</b> A amplitude <span class="m">A(\omega)</span> é máxima onde <span class="m">(\omega_0^2-\omega^2)^2 + 4\gamma^2\omega^2</span> é mínimo. Derivando em relação a <span class="m">\omega^2</span>, <span class="m">-2(\omega_0^2-\omega^2) + 4\gamma^2 = 0</span>:</p>
+      <div class="m">\omega_R = \sqrt{\omega_0^2 - 2\gamma^2}, \qquad A(\omega_R) = \frac{f}{2\gamma\,\omega_1},</div>
+      <p>desde que <span class="m">\omega_0^2 \gt 2\gamma^2</span>; caso contrário <span class="m">A</span> decresce monotonamente com <span class="m">\omega</span>. Em <span class="m">\omega = \omega_0</span>, <span class="m">A = F_0/(b\,\omega_0)</span> e <span class="m">\delta = \pi/2</span>: a velocidade está em fase com a força. Nos extremos, <span class="m">A \to F_0/k</span> e <span class="m">\delta \to 0</span> para <span class="m">\omega \to 0</span>, e <span class="m">A \to f/\omega^2</span> e <span class="m">\delta \to \pi</span> para <span class="m">\omega \to \infty</span>.</p>
+      <p><b>Potência absorvida.</b> No regime estacionário a potência média fornecida pela força externa é igual à dissipada pelo atrito:</p>
+      <div class="m">\langle P\rangle = \langle F_0\cos(\omega t)\,\dot x_p\rangle = \tfrac12\,b\,\omega^2A^2 = \frac{F_0^2}{2M}\,\frac{2\gamma\,\omega^2}{(\omega_0^2-\omega^2)^2 + 4\gamma^2\omega^2}.</div>
+      <p>O máximo, <span class="m">F_0^2/2b</span>, ocorre exatamente em <span class="m">\omega = \omega_0</span>, qualquer que seja o amortecimento. A potência cai à metade onde <span class="m">(\omega_0^2-\omega^2)^2 = 4\gamma^2\omega^2</span>, isto é, em</p>
+      <div class="m">\omega_\pm = \sqrt{\omega_0^2 + \gamma^2} \pm \gamma :</div>
+      <p>uma faixa de largura exatamente <span class="m">2\gamma</span>, com <span class="m">\omega_+\omega_- = \omega_0^2</span>. É a faixa verde na barra de <span class="m">\omega</span>. Para <span class="m">\gamma \ll \omega_0</span> ela é <span class="m">\omega_0 \pm \gamma</span>, e <span class="m">Q = \omega_0/2\gamma</span> é a razão entre a frequência de ressonância e a largura da faixa.</p>
+
+      <h3>5. Oscilação forçada sem amortecimento: batimentos e ressonância</h3>
+      <p>Com <span class="m">\gamma = 0</span> e <span class="m">\omega \ne \omega_0</span>, <span class="m">x_p = f\cos(\omega t)/(\omega_0^2-\omega^2)</span>, e nada decai. Partindo do repouso na origem, <span class="m">C_1 = -f/(\omega_0^2-\omega^2)</span> e <span class="m">C_2 = 0</span>:</p>
+      <div class="m">x(t) = \frac{f}{\omega_0^2-\omega^2}\left[\cos(\omega t) - \cos(\omega_0t)\right] = \frac{2f}{\omega_0^2-\omega^2}\operatorname{sen}\!\left(\frac{\omega_0-\omega}{2}\,t\right)\operatorname{sen}\!\left(\frac{\omega_0+\omega}{2}\,t\right).</div>
+      <p>Para <span class="m">\omega</span> próximo de <span class="m">\omega_0</span> é uma oscilação rápida, de frequência <span class="m">(\omega_0+\omega)/2</span>, modulada por uma envoltória lenta: batimentos, de período <span class="m">2\pi/|\omega_0-\omega|</span>.</p>
+      <p>No limite <span class="m">\omega \to \omega_0</span>, pela regra de L'Hôpital em <span class="m">\omega</span>,</p>
+      <div class="m">\frac{\cos(\omega t) - \cos(\omega_0t)}{\omega_0^2-\omega^2} \;\to\; \frac{t\operatorname{sen}(\omega_0t)}{2\omega_0}, \qquad\text{logo}\qquad x_p(t) = \frac{F_0}{2M\omega_0}\,t\operatorname{sen}(\omega_0t).</div>
+      <p>A amplitude cresce linearmente com o tempo e não há regime estacionário. (Verificação direta: <span class="m">\ddot x_p + \omega_0^2x_p = f\cos(\omega_0t)</span>.) Como <span class="m">x_p(0) = \dot x_p(0) = 0</span>, as constantes de <span class="m">x_h</span> são <span class="m">C_1 = x_0</span> e <span class="m">C_2 = v_0/\omega_0</span>.</p>
+
+      <h3>6. Termos anarmônicos</h3>
+      <p>Com <span class="m">\lambda_3</span> ou <span class="m">\lambda_4</span> diferente de zero a equação não é linear e não tem solução em funções elementares; a página a integra numericamente (seção 8). Alguns resultados seguem sem resolvê-la.</p>
+      <p><b>Equilíbrios.</b> São os zeros de <span class="m">dV/dx = x\,(k + \lambda_3x + \lambda_4x^2)</span>: <span class="m">x = 0</span>, sempre estável (<span class="m">k \gt 0</span>), e as raízes reais de <span class="m">k + \lambda_3x + \lambda_4x^2 = 0</span>. É estável o ponto em que <span class="m">d^2V/dx^2 \gt 0</span> (mínimo de <span class="m">V</span>). Pelos pontos instáveis passa a separatriz, a curva de nível <span class="m">H = V(x_{\text{inst}})</span>. Daí os três regimes indicados nas barras de <span class="m">\lambda_3</span> e <span class="m">\lambda_4</span>:</p>
+      <ul>
+        <li><b>estável</b>: <span class="m">\lambda_4 \gt 0</span> e <span class="m">\lambda_3^2 \lt 4k\lambda_4</span>. O único equilíbrio é <span class="m">x = 0</span> e o potencial confina a massa.</li>
+        <li><b>biestável</b>: <span class="m">\lambda_4 \gt 0</span> e <span class="m">\lambda_3^2 \gt 4k\lambda_4</span>. Há dois poços, separados por uma barreira.</li>
+        <li><b>instável</b>: <span class="m">\lambda_4 \lt 0</span>, ou <span class="m">\lambda_4 = 0</span> e <span class="m">\lambda_3 \ne 0</span>. <span class="m">V \to -\infty</span> em pelo menos um sentido: a massa que ultrapassa a barreira não volta, e vai a infinito em tempo finito, pois <span class="m">\int dx/\sqrt{-2V/M}</span> converge quando <span class="m">-V</span> cresce como <span class="m">x^3</span> ou <span class="m">x^4</span>.</li>
+      </ul>
+      <p><b>Período.</b> Sem atrito nem força externa, a conservação da energia dá <span class="m">\dot x = \pm\sqrt{2\,[E - V(x)]/M}</span>, e o período é</p>
+      <div class="m">T(E) = 2\int_{x_1}^{x_2}\frac{dx}{\sqrt{2\,[E - V(x)]/M}},</div>
+      <p>entre os pontos de retorno <span class="m">x_1</span> e <span class="m">x_2</span>, em que <span class="m">V = E</span>. Ao contrário do caso harmônico, depende da amplitude. Para pequena amplitude <span class="m">a</span> (Landau e Lifshitz, §28; resultado citado, não deduzido aqui),</p>
+      <div class="m">\omega \simeq \omega_0 + \left(\frac{3\lambda_4}{8M\omega_0} - \frac{5\lambda_3^2}{12M^2\omega_0^3}\right)a^2 :</div>
+      <p>o termo quártico com <span class="m">\lambda_4 \gt 0</span> aumenta a frequência (mola que endurece), e o termo cúbico sempre a diminui.</p>
+
+      <h3>7. Pêndulo</h3>
+      <p>Uma massa <span class="m">M</span> na ponta de uma haste rígida de comprimento <span class="m">L</span>, sem massa, no campo gravitacional <span class="m">g</span>. Seja <span class="m">x</span> o comprimento de arco ao longo da trajetória circular, medido a partir do ponto mais baixo, de modo que o ângulo com a vertical é <span class="m">\theta = x/L</span>. A componente tangencial da segunda lei, com o atrito e a força externa também tangenciais, é</p>
+      <div class="m">M\ddot x = -Mg\operatorname{sen}\!\left(\frac{x}{L}\right) - b\,\dot x + F_0\cos(\omega t), \qquad V(x) = MgL\left[1 - \cos\!\left(\frac{x}{L}\right)\right].</div>
+      <p>O momento conjugado a <span class="m">x</span> é <span class="m">p = M\dot x</span>, e o que foi dito na seção 1 continua valendo. No diagrama de fase, <span class="m">x</span> é reduzido a uma volta, <span class="m">-\pi L \lt x \le \pi L</span>: as duas bordas são a mesma posição, a invertida.</p>
+      <p><b>Pequenas oscilações.</b> Para <span class="m">|x| \ll L</span>, <span class="m">\operatorname{sen}(x/L) \simeq x/L</span>, e o pêndulo é um oscilador harmônico com <span class="m">k = Mg/L</span>, ou seja, <span class="m">\omega_0 = \sqrt{g/L}</span>, independente da massa: valem as seções 2 a 5. É a curva tracejada «aproximação harmônica» no gráfico de <span class="m">x(t)</span>.</p>
+      <p><b>Solução exata sem atrito nem força externa.</b> A energia <span class="m">E = \tfrac12M\dot x^2 + MgL\,(1-\cos\theta)</span> é constante. Com <span class="m">1 - \cos\theta = 2\operatorname{sen}^2(\theta/2)</span> e definindo <span class="m">\kappa^2 = E/(2MgL)</span>,</p>
+      <div class="m">\dot\theta^2 = 4\omega_0^2\left[\kappa^2 - \operatorname{sen}^2(\theta/2)\right].</div>
+      <p><i>Oscilação</i> (<span class="m">\kappa \lt 1</span>). O pêndulo vai e volta entre <span class="m">\pm\theta_{\text{máx}}</span>, com <span class="m">\kappa = \operatorname{sen}(\theta_{\text{máx}}/2)</span>. A substituição <span class="m">\operatorname{sen}(\theta/2) = \kappa\operatorname{sen}\varphi</span> dá <span class="m">\dot\theta = 2\omega_0\kappa\cos\varphi</span> e, derivando-a, <span class="m">\dot\varphi = \omega_0\sqrt{1 - \kappa^2\operatorname{sen}^2\varphi}</span>. Logo</p>
+      <div class="m">\omega_0t + u_0 = \int_0^{\varphi}\frac{d\varphi'}{\sqrt{1-\kappa^2\operatorname{sen}^2\varphi'}} \equiv F(\varphi,\kappa).</div>
+      <p>A inversa dessa integral define as funções elípticas de Jacobi: <span class="m">\varphi = \operatorname{am}(u,\kappa)</span>, <span class="m">\operatorname{sn} = \operatorname{sen}\varphi</span>, <span class="m">\operatorname{cn} = \cos\varphi</span> e <span class="m">\operatorname{dn} = d\varphi/du</span>. Portanto</p>
+      <div class="m">\operatorname{sen}\frac{x}{2L} = \kappa\operatorname{sn}(\omega_0t + u_0,\ \kappa), \qquad \dot x = 2L\,\omega_0\,\kappa\operatorname{cn}(\omega_0t + u_0,\ \kappa),</div>
+      <p>com <span class="m">u_0 = F(\varphi_0,\kappa)</span>, em que <span class="m">\varphi_0</span> é fixado por <span class="m">\operatorname{sen}\varphi_0 = \operatorname{sen}(x_0/2L)/\kappa</span> e <span class="m">\cos\varphi_0 = v_0/(2L\omega_0\kappa)</span>. Em um período <span class="m">\varphi</span> aumenta de <span class="m">2\pi</span>:</p>
+      <div class="m">T = \frac{4K(\kappa)}{\omega_0}, \qquad K(\kappa) = F(\pi/2,\kappa) = \frac{\pi}{2}\left[1 + \frac{\kappa^2}{4} + \frac{9\kappa^4}{64} + \dots\right],</div>
+      <p>isto é,</p>
+      <div class="m">T = \frac{2\pi}{\omega_0}\left[1 + \frac{\theta_{\text{máx}}^2}{16} + \frac{11\,\theta_{\text{máx}}^4}{3072} + \dots\right].</div>
+      <p>O período cresce com a amplitude; para <span class="m">\kappa \to 0</span>, <span class="m">\operatorname{sn} \to \operatorname{sen}</span> e recupera-se o oscilador harmônico.</p>
+      <p><i>Rotação</i> (<span class="m">\kappa \gt 1</span>). A energia supera a da posição invertida, <span class="m">2MgL</span>, e <span class="m">\dot\theta</span> nunca se anula. Com <span class="m">\varphi = \theta/2</span>, a mesma integral aparece com módulo <span class="m">1/\kappa</span>:</p>
+      <div class="m">x(t) = 2L\operatorname{am}(\pm\kappa\,\omega_0t + u_0,\ 1/\kappa), \qquad \dot x = \pm2L\,\omega_0\,\kappa\operatorname{dn}(\pm\kappa\,\omega_0t + u_0,\ 1/\kappa), \qquad u_0 = F\!\left(\frac{x_0}{2L},\frac1\kappa\right),</div>
+      <p>com o sinal da velocidade inicial. Uma volta completa leva <span class="m">2K(1/\kappa)/(\kappa\,\omega_0)</span>.</p>
+      <p><i>Separatriz</i> (<span class="m">\kappa = 1</span>). Com <span class="m">E = 2MgL</span> a integral é elementar:</p>
+      <div class="m">\operatorname{sen}\frac{x}{2L} = \tanh(\pm\omega_0t + u_0), \qquad \dot x = \pm2L\,\omega_0\operatorname{sech}(\pm\omega_0t + u_0).</div>
+      <p>O pêndulo se aproxima da posição invertida sem nunca alcançá-la; de fato, <span class="m">K(\kappa) \to \infty</span> quando <span class="m">\kappa \to 1</span>.</p>
+      <p>Com atrito ou força externa não há solução fechada, e a equação é integrada numericamente. O pêndulo amortecido e forçado pode ter movimento caótico: é o último exemplo do menu.</p>
+
+      <h3>8. Cálculo das curvas</h3>
+      <p>Quando há solução fechada (seções 2 a 5 e 7), as curvas da página são calculadas diretamente por ela. Caso contrário, o sistema de primeira ordem da seção 1, <span class="m">\dot y = G(t, y)</span> com <span class="m">y = (x, p)</span>, é integrado pelo método de Runge–Kutta clássico de quarta ordem: a cada passo <span class="m">h</span>,</p>
+      <div class="m">k_1 = G(t, y),\quad k_2 = G\!\left(t + \tfrac h2,\ y + \tfrac h2 k_1\right),\quad k_3 = G\!\left(t + \tfrac h2,\ y + \tfrac h2 k_2\right),\quad k_4 = G(t + h,\ y + h\,k_3),</div>
+      <div class="m">y(t+h) = y(t) + \tfrac h6\left(k_1 + 2k_2 + 2k_3 + k_4\right),</div>
+      <p>com erro proporcional a <span class="m">h^5</span> por passo. O passo é de 1 ms, reduzido quando o movimento é rápido demais para ele: procura-se manter abaixo de 0,05 o produto da maior taxa do movimento pelo passo, com passo mínimo de 25 µs e, no máximo, 1,5 milhão de passos. O rodapé da página informa qual dos dois cálculos está em uso. Os testes que acompanham o código comparam a integração numérica com as soluções fechadas e verificam a conservação da energia, o período dado pela integral da seção 6 e a correção de frequência citada ali.</p>
+    </div>
+
+    <div class="texto" role="tabpanel" id="painelReferencias" aria-labelledby="abaReferencias" hidden>
+      <h3>Osciladores</h3>
+      <ul>
+        <li>R. P. Feynman, R. B. Leighton e M. Sands, <i>The Feynman Lectures on Physics</i>, vol. I (Addison-Wesley, 1963). Capítulos <a href="https://www.feynmanlectures.caltech.edu/I_21.html" target="_blank" rel="noopener">21, The Harmonic Oscillator</a>; <a href="https://www.feynmanlectures.caltech.edu/I_23.html" target="_blank" rel="noopener">23, Resonance</a>; <a href="https://www.feynmanlectures.caltech.edu/I_24.html" target="_blank" rel="noopener">24, Transients</a>; e <a href="https://www.feynmanlectures.caltech.edu/I_25.html" target="_blank" rel="noopener">25, Linear Systems and Review</a>. No <a href="https://www.feynmanlectures.caltech.edu/I_09.html" target="_blank" rel="noopener">capítulo 9</a>, a seção 9–6 integra numericamente, passo a passo, o movimento de uma massa presa a uma mola. Edição brasileira: <i>Lições de Física de Feynman</i> (Bookman).</li>
+        <li>H. M. Nussenzveig, <i>Curso de Física Básica 2: Fluidos, Oscilações e Ondas, Calor</i> (Blucher). Capítulos 3, O oscilador harmônico, e 4, Oscilações amortecidas e forçadas.</li>
+        <li>L. D. Landau e E. M. Lifshitz, <i>Mechanics</i>, 3ª ed. (Pergamon, 1976). §11, movimento em uma dimensão e integral do período; §§21, 22, 25 e 26, oscilações livres, forçadas e amortecidas; §28, oscilações anarmônicas e a correção da frequência com a amplitude.</li>
+      </ul>
+
+      <h3>Espaço de fase</h3>
+      <ul>
+        <li>S. H. Strogatz, <i>Nonlinear Dynamics and Chaos</i>, 2ª ed. (Westview Press, 2015). Capítulo 6, Phase Plane: em particular §6.5, Conservative Systems, e §6.7, Pendulum.</li>
+        <li>V. I. Arnold, <i>Mathematical Methods of Classical Mechanics</i>, 2ª ed. (Springer, 1989). Capítulo 2, §4, sistemas com um grau de liberdade: plano de fase e curvas de fase; capítulo 8, variedades simpléticas.</li>
+        <li>S. T. Thornton e J. B. Marion, <i>Classical Dynamics of Particles and Systems</i>, 5ª ed. (Brooks/Cole, 2004). Capítulos 3, Oscillations, e 4, Nonlinear Oscillations and Chaos: diagramas de fase do oscilador e do pêndulo.</li>
+        <li>N. A. Lemos, <i>Mecânica Analítica</i>, 2ª ed. (Livraria da Física, 2007). Formulação hamiltoniana e espaço de fase, em português.</li>
+      </ul>
+
+      <h3>Pêndulo e funções elípticas</h3>
+      <ul>
+        <li><i>NIST Digital Library of Mathematical Functions</i>, capítulo 22, Jacobian Elliptic Functions: <a href="https://dlmf.nist.gov/22.19" target="_blank" rel="noopener">§22.19(i), Classical Dynamics: The Pendulum</a>, e §22.20, Methods of Computation; capítulo 19, Elliptic Integrals.</li>
+        <li>B. C. Carlson, «Computing elliptic integrals by duplication», <i>Numerische Mathematik</i> 33, 1–16 (1979). O método usado para a integral incompleta <span class="m">F(\varphi,\kappa)</span>.</li>
+        <li>G. L. Baker e J. P. Gollub, <i>Chaotic Dynamics: An Introduction</i>, 2ª ed. (Cambridge University Press, 1996). O pêndulo amortecido e forçado; os parâmetros do exemplo caótico do menu são os deste livro.</li>
+      </ul>
+
+      <h3>Cálculo numérico</h3>
+      <ul>
+        <li>E. Hairer, S. P. Nørsett e G. Wanner, <i>Solving Ordinary Differential Equations I: Nonstiff Problems</i>, 2ª ed. (Springer, 1993). Capítulo II, métodos de Runge–Kutta.</li>
+      </ul>
+
+      <h3>Inspirado por</h3>
+      <p>O problema é clássico, e há muitas simulações didáticas anteriores a esta, que informam, de modo difuso, o seu desenho. Nenhuma foi usada como fonte de código. As mais próximas:</p>
+      <ul>
+        <li><b>myPhysicsLab</b>, de Erik Neumann: <a href="https://myphysicslab.com/springs/single-spring-en.html" target="_blank" rel="noopener">Single Spring</a>, <a href="https://myphysicslab.com/pendulum/pendulum-en.html" target="_blank" rel="noopener">Simple Pendulum</a> e <a href="https://myphysicslab.com/pendulum/chaotic-pendulum-en.html" target="_blank" rel="noopener">Chaotic Pendulum</a>. Integração por Runge–Kutta no navegador, com gráficos das variáveis; código aberto.</li>
+        <li><b>PhET Interactive Simulations</b>, Universidade do Colorado em Boulder: <a href="https://phet.colorado.edu/en/simulations/masses-and-springs" target="_blank" rel="noopener">Masses and Springs</a>, <a href="https://phet.colorado.edu/en/simulations/pendulum-lab" target="_blank" rel="noopener">Pendulum Lab</a> e <a href="https://phet.colorado.edu/pt_BR/simulations/resonance" target="_blank" rel="noopener">Ressonância</a>.</li>
+        <li><b>Apps de Física</b>, de Walter Fendt, na versão em português da Casa das Ciências: <a href="https://www.walter-fendt.de/html5/phpt/pendulum_pt.htm" target="_blank" rel="noopener">Pêndulo simples</a>, <a href="https://www.walter-fendt.de/html5/phpt/springpendulum_pt.htm" target="_blank" rel="noopener">Pêndulo em mola</a> e <a href="https://www.walter-fendt.de/html5/phpt/resonance_pt.htm" target="_blank" rel="noopener">Oscilações forçadas (Ressonância)</a>.</li>
+        <li><b>Open Source Physics</b> (ComPADRE): <a href="https://www.compadre.org/osp/items/detail.cfm?ID=7566" target="_blank" rel="noopener">Damped Driven Simple Harmonic Oscillator Model</a>, de Wolfgang Christian, e <a href="https://www.compadre.org/osp/items/detail.cfm?ID=8290" target="_blank" rel="noopener">Damped Driven Harmonic Oscillator Phasor Model</a>, de Juan Aguirregabiria.</li>
+      </ul>
+
+      <h3>Programas</h3>
+      <ul>
+        <li>As fórmulas são compostas pelo <a href="https://katex.org" target="_blank" rel="noopener">KaTeX</a> (licença MIT), incluído na página. O código desta página está sob a licença MIT.</li>
       </ul>
     </div>
   </section>
 </main>
 
 <footer class="rodape">
-  <p>Bruno Mota · metaBIO, Instituto de Física, UFRJ. Unidades do SI. Integração numérica: Runge–Kutta de 4ª ordem, passo de 1 ms.</p>
+  <p>Bruno Mota · metaBIO, Instituto de Física, UFRJ. Unidades do SI. <span id="metodo"></span></p>
 </footer>
 
 <script src="vendor/katex/katex.min.js"></script>
