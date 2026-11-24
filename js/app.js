@@ -52,7 +52,7 @@
       { id: 'k', only: 'oscillator', symbol: 'k', name: 'constante elástica', unit: 'N/m', min: 0.5, max: 20, step: 0.1, value: 4, decimals: 2 },
       { id: 'L', only: 'pendulum', symbol: 'L', name: 'comprimento', unit: 'm', min: 0.2, max: 5, step: 0.05, value: 1, decimals: 2 },
       { id: 'g', only: 'pendulum', symbol: 'g', name: 'gravidade', unit: 'm/s²', min: 1, max: 25, step: 0.05, value: 9.81, decimals: 2 },
-      { id: 'b', symbol: 'b', name: 'amortecimento', unit: 'kg/s', min: 0, max: 10, step: 0.05, value: 0.4, decimals: 2 },
+      { id: 'b', symbol: 'b', name: 'amortecimento', unit: 'kg/s', min: 0, max: 10, step: 0.05, value: 0, decimals: 2 },
     ], caption: [['sub', 'subamortecido'], ['super', 'superamortecido']] },
     { title: 'Termos anarmônicos', only: 'oscillator', controls: [
       { id: 'l3', symbol: '\\lambda_3', name: 'cúbico', unit: 'N/m²', min: -5, max: 5, step: 0.05, value: 0, decimals: 2 },
@@ -85,18 +85,19 @@
    */
   const ROOT_G = Math.sqrt(9.81);
   const EXAMPLES = [
-    { name: 'Subamortecido', system: 'oscillator', M: 1, k: 4, L: 1, g: 9.81, b: 0.4, l3: 0, l4: 0, F0: 0, w: 2, x0: 1, p0: 0, T: 30 },
-    { name: 'Livre, sem amortecimento', b: 0 },
+    { name: 'Livre, sem amortecimento', system: 'oscillator', M: 1, k: 4, L: 1, g: 9.81, b: 0, l3: 0, l4: 0, F0: 0, w: 2, x0: 1, p0: 0, T: 30 },
+    { name: 'Subamortecido', b: 0.4 },
     { name: 'Amortecimento crítico', b: 4, T: 10 },
     { name: 'Superamortecido', b: 8, T: 10 },
-    { name: 'Forçado: ressonância', F0: 1, w: 2, x0: 0, T: 40 },
-    { name: 'Forçado, sem amortecimento: batimentos', b: 0, F0: 1, w: 1.8, x0: 0, T: 70 },
-    { name: 'Ressonância sem amortecimento', b: 0, F0: 0.5, w: 2, x0: 0, T: 40 },
-    { name: 'Quártico: mola que endurece', b: 0, l4: 3, x0: 1.5, T: 20 },
+    { name: 'Forçado em ressonância', F0: 0.5, w: 2, x0: 0, T: 40 },
+    { name: 'Forçado, com batimentos', F0: 1, w: 1.8, x0: 0, T: 70 },
+    { name: 'Forçado em ressonância, com amortecimento', b: 0.4, F0: 1, w: 2, x0: 0, T: 40 },
+    { name: 'Forçado, com batimentos, com amortecimento', b: 0.1, F0: 1, w: 1.8, x0: 0, T: 80 },
+    { name: 'Quártico: mola que endurece', l4: 3, x0: 1.5, T: 20 },
     { name: 'Quártico forçado (Duffing)', b: 0.3, l4: 2, F0: 2.5, w: 2.6, x0: 0, T: 80 },
+    { name: 'Cúbico: oscilação assimétrica', l3: -1.5, x0: 1.6, T: 20 },
+    { name: 'Cúbico: escape', l3: -1.5, x0: -1.8, T: 20 },
     { name: 'Dois poços', k: 1, b: 0.05, l3: -3, l4: 1.5, x0: 2.4, T: 60 },
-    { name: 'Cúbico: oscilação assimétrica', b: 0, l3: -1.5, x0: 1.6, T: 20 },
-    { name: 'Cúbico: escape', b: 0, l3: -1.5, x0: -1.8, T: 20 },
     { name: 'Pêndulo: pequenas oscilações', system: 'pendulum', b: 0, x0: 0.3, T: 10 },
     { name: 'Pêndulo: grande amplitude', system: 'pendulum', b: 0, x0: 2.8, T: 20 },
     { name: 'Pêndulo: sobre a separatriz', system: 'pendulum', b: 0, x0: 0, p0: 2 * ROOT_G, T: 10 },
@@ -657,7 +658,7 @@
     new MutationObserver(() => { stale = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { stale = true; });
 
-    setSystem('oscillator');
+    applyExample(0);                        // the page opens on the first example
     requestAnimationFrame(tick);
   }
 
