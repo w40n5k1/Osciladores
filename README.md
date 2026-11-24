@@ -19,7 +19,10 @@ funciona sem internet.
   elipse tracejada é o regime estacionário. No ponto atual há quatro setas: a velocidade (horizontal) e a força
   resultante (vertical), finas e cinza; a sua soma, que é o vetor tangente (*x'*, *p'*); e, mais grossa e
   vermelha, a força externa *F*₀ cos(ω*t*). Todas multiplicadas pelo mesmo tempo τ = 0,35/ω₀, de modo que
-  mostram o deslocamento no diagrama durante τ. Arrastar no diagrama escolhe a condição inicial.
+  mostram o deslocamento no diagrama durante τ. A seta vermelha seria muitas vezes pequena demais para se ver
+  (na ressonância, a força externa é 1/*Q* da força elástica): quando o seu máximo não chega a 30 pixels, ela é
+  ampliada por um fator redondo (2, 5, 10, ...), indicado na legenda. Arrastar no diagrama escolhe a condição
+  inicial.
 - **Intervalos do diagrama**: as duas barras finas, embaixo e à esquerda, definem os intervalos de *x* e de *p*,
   sempre simétricos (de −*a* a *a*). Com «ajustar à curva» marcado, os intervalos acompanham a trajetória; mover
   uma das barras desmarca a opção. As barras de *x*₀ e *p*₀ cobrem o intervalo do diagrama.
@@ -29,7 +32,7 @@ funciona sem internet.
 - **Tempo**: botão de reproduzir e pausar, e a barra do instante; clicar no «0» da barra recomeça o movimento.
 - **Equação de movimento e solução**: a equação diferencial com os termos presentes, em símbolos e com os
   valores atuais; o gráfico de *x*(*t*); e, quando existe, a fórmula da solução com suas constantes.
-- **Deduções** e **Referências**, em duas abas no fim da página.
+- **Deduções** e **Referências**: dois painéis no fim da página, um sobre o outro, fechados até que se clique no título.
 
 A solução inteira, de *t* = 0 até a duração escolhida, é recalculada a cada mudança de um controle; a animação
 apenas move um cursor de tempo sobre ela. Arrastar nos gráficos de energia e de *x*(*t*) move o cursor. O rodapé
@@ -89,8 +92,8 @@ Pêndulo sem atrito nem força externa, com κ² = *E*/(2*MgL*), em funções el
 
 Uma massa em repouso sobre um ponto de equilíbrio, sem força externa, aí permanece (também no instável).
 
-As deduções estão na aba «Deduções» da página. Para o pêndulo, a curva tracejada «aproximação harmônica» no
-gráfico de *x*(*t*) é a solução do oscilador linear com *k* = *Mg*/*L*; para o oscilador com termos anarmônicos,
+As deduções estão no painel «Deduções» da página. Para o pêndulo, a curva tracejada «aproximação harmônica»
+(desligada de início; liga-se sob o gráfico de *x*(*t*)) é a solução do oscilador linear com *k* = *Mg*/*L*; para o oscilador com termos anarmônicos,
 é a solução com λ₃ = λ₄ = 0.
 
 ### Integração numérica

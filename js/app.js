@@ -94,7 +94,7 @@
     system: 'oscillator',
     t: 0, playing: true, speed: 1,
     components: true,                       // draw the two terms of the forced linear solution
-    approx: true,                           // draw the harmonic approximation of a nonlinear system
+    approx: false,                          // draw the harmonic approximation of a nonlinear system
     fit: true,                              // the phase diagram rescales to fit the trajectory
     frozen: null,                           // {xr, pr}: ranges held while the initial condition is dragged
   };
@@ -389,7 +389,13 @@
       decorate();
       formulas();
     }
-    if (stale || resized) { for (const plot of plots) plot.render(model); redraw = true; }
+    if (stale || resized) {
+      for (const plot of plots) plot.render(model);
+      // The arrow of the external force is magnified when it would be too short to see: the legend says by how much.
+      const zoom = plots[0].forceZoom;
+      $('ampliacao').textContent = zoom > 1 ? ' (ampliada ' + String(zoom).replace('.', ',') + '×)' : '';
+      redraw = true;
+    }
     stale = false;
     if (redraw) {
       model.index = Math.min(Math.round(state.t / model.sol.dt), model.sol.n - 1);
@@ -504,32 +510,9 @@
     }
   }
 
-  /** Tabs: clicking or the left and right arrows show one panel and hide the others. */
-  function buildTabs() {
-    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
-    const select = chosen => {
-      for (const tab of tabs) {
-        const on = tab === chosen;
-        tab.setAttribute('aria-selected', on);
-        tab.tabIndex = on ? 0 : -1;
-        $(tab.getAttribute('aria-controls')).hidden = !on;
-      }
-    };
-    tabs.forEach((tab, i) => {
-      tab.addEventListener('click', () => select(tab));
-      tab.addEventListener('keydown', event => {
-        const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
-        if (!step) return;
-        const next = tabs[(i + step + tabs.length) % tabs.length];
-        select(next); next.focus();
-      });
-    });
-  }
-
   function start() {
     for (const group of GROUPS) buildGroup(group, $('controles'));
     for (const element of document.querySelectorAll('.m')) C.math(element, element.textContent, element.tagName === 'DIV');
-    buildTabs();
 
     const phase = new G.Phase($('fase')), energy = new G.Energy($('energia')), solution = new G.Solution($('solucao'));
     plots = [phase, energy, solution];

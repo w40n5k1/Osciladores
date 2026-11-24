@@ -51,7 +51,7 @@
         <li><svg class="seta tinta-2" viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><path d="M1 5h15" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M21 5l-6.5-3v6z" fill="currentColor"/></svg><span>velocidade, <span class="m">\dot x</span></span></li>
         <li><svg class="seta tinta-2" viewBox="0 0 10 18" width="10" height="18" aria-hidden="true"><path d="M5 17V6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5 1l-3 6.5h6z" fill="currentColor"/></svg><span>força resultante, <span class="m">\dot p</span></span></li>
         <li><svg class="seta tinta" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M2 16L12.5 5.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M17 1l-7 2.6 4.4 4.4z" fill="currentColor"/></svg><span>vetor tangente, <span class="m">(\dot x,\ \dot p)</span></span></li>
-        <li id="legForca"><svg class="seta forca" viewBox="0 0 12 18" width="12" height="18" aria-hidden="true"><path d="M6 17V8" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M6 0.5l-5 8.5h10z" fill="currentColor"/></svg><span>força externa, <span class="m">F_0\cos(\omega t)</span></span></li>
+        <li id="legForca"><svg class="seta forca" viewBox="0 0 12 18" width="12" height="18" aria-hidden="true"><path d="M6 17V8" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M6 0.5l-5 8.5h10z" fill="currentColor"/></svg><span>força externa, <span class="m">F_0\cos(\omega t)</span><span id="ampliacao"></span></span></li>
       </ul>
       <p class="dica">Arraste no diagrama para escolher a condição inicial (<span class="mat">x</span><sub>0</sub>, <span class="mat">p</span><sub>0</sub>); ao soltar, o movimento recomeça. As setas mostram quanto <span class="mat">x</span> e <span class="mat">p</span> variariam em <span id="escalaSetas"></span>, mantidas as taxas do instante. As barras finas, embaixo e à esquerda, definem os intervalos de <span class="mat">x</span> e de <span class="mat">p</span>.</p>
     </section>
@@ -110,18 +110,14 @@
         <li id="legTransiente"><i class="linha serie-2"></i><span id="nomeHomogenea">transiente</span></li>
         <li id="legParticular"><i class="linha serie-3"></i><span id="nomeParticular">regime estacionário</span></li>
         <li id="opcaoComponentes"><label><input type="checkbox" id="componentes" checked> mostrar os dois termos</label></li>
-        <li id="opcaoAproximacao"><label><input type="checkbox" id="aproximacao" checked><i class="linha tracejada tinta"></i>aproximação harmônica</label></li>
+        <li id="opcaoAproximacao"><label><input type="checkbox" id="aproximacao"><i class="linha tracejada tinta"></i>aproximação harmônica</label></li>
       </ul>
     </div>
   </section>
 
-  <section class="painel abas" aria-label="Deduções e referências">
-    <div class="abas-lista" role="tablist" aria-label="Deduções e referências">
-      <button type="button" role="tab" id="abaDeducoes" aria-controls="painelDeducoes" aria-selected="true">Deduções</button>
-      <button type="button" role="tab" id="abaReferencias" aria-controls="painelReferencias" aria-selected="false" tabindex="-1">Referências</button>
-    </div>
-
-    <div class="texto" role="tabpanel" id="painelDeducoes" aria-labelledby="abaDeducoes">
+  <details class="painel dobra" id="painelDeducoes">
+    <summary>Deduções</summary>
+    <div class="texto">
       <p class="dica">Notação: o ponto indica derivada em relação ao tempo. No oscilador, <span class="m">\omega_0 = \sqrt{k/M}</span>, <span class="m">\gamma = b/2M</span>, <span class="m">f = F_0/M</span> e <span class="m">v_0 = p_0/M</span>.</p>
 
       <h3>1. Equação de movimento, espaço de fase e energia</h3>
@@ -130,7 +126,7 @@
       <p>ou seja, <span class="m">M\ddot x + b\,\dot x + k\,x + \lambda_3x^2 + \lambda_4x^3 = F_0\cos(\omega t)</span>.</p>
       <p>Com o momento <span class="m">p = M\dot x</span>, a equação de segunda ordem equivale a duas de primeira ordem:</p>
       <div class="m">\dot x = \frac{p}{M}, \qquad \dot p = -\frac{dV}{dx} - \frac{b}{M}\,p + F_0\cos(\omega t).</div>
-      <p>O estado do sistema é o ponto <span class="m">(x, p)</span> do espaço de fase, e <span class="m">(\dot x, \dot p)</span> é o vetor tangente à trajetória nesse ponto: suas componentes são a velocidade e a força resultante. No diagrama, são as duas setas finas cinza, a horizontal e a vertical; a terceira seta fina é a sua soma, e a seta vermelha é a parcela <span class="m">F_0\cos(\omega t)</span> da força. Sem atrito nem força externa, as equações são as de Hamilton, <span class="m">\dot x = \partial H/\partial p</span> e <span class="m">\dot p = -\partial H/\partial x</span>, com <span class="m">H = p^2/2M + V(x)</span>.</p>
+      <p>O estado do sistema é o ponto <span class="m">(x, p)</span> do espaço de fase, e <span class="m">(\dot x, \dot p)</span> é o vetor tangente à trajetória nesse ponto: suas componentes são a velocidade e a força resultante. No diagrama, são as duas setas finas cinza, a horizontal e a vertical; a terceira seta fina é a sua soma, e a seta vermelha é a parcela <span class="m">F_0\cos(\omega t)</span> da força. Na mesma escala das outras, a seta vermelha é muitas vezes pequena demais para se ver (na ressonância, a força externa é <span class="m">1/Q</span> da força elástica): ela é então desenhada ampliada, pelo fator indicado na legenda do diagrama. Sem atrito nem força externa, as equações são as de Hamilton, <span class="m">\dot x = \partial H/\partial p</span> e <span class="m">\dot p = -\partial H/\partial x</span>, com <span class="m">H = p^2/2M + V(x)</span>.</p>
       <p>A energia <span class="m">E = p^2/2M + V(x)</span> varia segundo</p>
       <div class="m">\frac{dE}{dt} = \dot x\left(M\ddot x + \frac{dV}{dx}\right) = -b\,\dot x^2 + F_0\cos(\omega t)\,\dot x .</div>
       <p>O atrito só retira energia; a força externa pode fornecê-la ou retirá-la. Sem os dois, <span class="m">E</span> é constante e a trajetória percorre uma curva de nível de <span class="m">H</span> (as curvas cinza do diagrama).</p>
@@ -202,7 +198,7 @@
       <p>Uma massa <span class="m">M</span> na ponta de uma haste rígida de comprimento <span class="m">L</span>, sem massa, no campo gravitacional <span class="m">g</span>. Seja <span class="m">x</span> o comprimento de arco ao longo da trajetória circular, medido a partir do ponto mais baixo, de modo que o ângulo com a vertical é <span class="m">\theta = x/L</span>. A componente tangencial da segunda lei, com o atrito e a força externa também tangenciais, é</p>
       <div class="m">M\ddot x = -Mg\operatorname{sen}\!\left(\frac{x}{L}\right) - b\,\dot x + F_0\cos(\omega t), \qquad V(x) = MgL\left[1 - \cos\!\left(\frac{x}{L}\right)\right].</div>
       <p>O momento conjugado a <span class="m">x</span> é <span class="m">p = M\dot x</span>, e o que foi dito na seção 1 continua valendo. No diagrama de fase, <span class="m">x</span> é reduzido a uma volta, <span class="m">-\pi L \lt x \le \pi L</span>: as duas bordas são a mesma posição, a invertida.</p>
-      <p><b>Pequenas oscilações.</b> Para <span class="m">|x| \ll L</span>, <span class="m">\operatorname{sen}(x/L) \simeq x/L</span>, e o pêndulo é um oscilador harmônico com <span class="m">k = Mg/L</span>, ou seja, <span class="m">\omega_0 = \sqrt{g/L}</span>, independente da massa: valem as seções 2 a 5. É a curva tracejada «aproximação harmônica» no gráfico de <span class="m">x(t)</span>.</p>
+      <p><b>Pequenas oscilações.</b> Para <span class="m">|x| \ll L</span>, <span class="m">\operatorname{sen}(x/L) \simeq x/L</span>, e o pêndulo é um oscilador harmônico com <span class="m">k = Mg/L</span>, ou seja, <span class="m">\omega_0 = \sqrt{g/L}</span>, independente da massa: valem as seções 2 a 5. É a curva tracejada «aproximação harmônica», que pode ser ligada no gráfico de <span class="m">x(t)</span>.</p>
       <p><b>Solução exata sem atrito nem força externa.</b> A energia <span class="m">E = \tfrac12M\dot x^2 + MgL\,(1-\cos\theta)</span> é constante. Com <span class="m">1 - \cos\theta = 2\operatorname{sen}^2(\theta/2)</span> e definindo <span class="m">\kappa^2 = E/(2MgL)</span>,</p>
       <div class="m">\dot\theta^2 = 4\omega_0^2\left[\kappa^2 - \operatorname{sen}^2(\theta/2)\right].</div>
       <p><i>Oscilação</i> (<span class="m">\kappa \lt 1</span>). O pêndulo vai e volta entre <span class="m">\pm\theta_{\text{máx}}</span>, com <span class="m">\kappa = \operatorname{sen}(\theta_{\text{máx}}/2)</span>. A substituição <span class="m">\operatorname{sen}(\theta/2) = \kappa\operatorname{sen}\varphi</span> dá <span class="m">\dot\theta = 2\omega_0\kappa\cos\varphi</span> e, derivando-a, <span class="m">\dot\varphi = \omega_0\sqrt{1 - \kappa^2\operatorname{sen}^2\varphi}</span>. Logo</p>
@@ -228,8 +224,11 @@
       <div class="m">y(t+h) = y(t) + \tfrac h6\left(k_1 + 2k_2 + 2k_3 + k_4\right),</div>
       <p>com erro proporcional a <span class="m">h^5</span> por passo. O passo é de 1 ms, reduzido quando o movimento é rápido demais para ele: procura-se manter abaixo de 0,05 o produto da maior taxa do movimento pelo passo, com passo mínimo de 25 µs e, no máximo, 1,5 milhão de passos. O rodapé da página informa qual dos dois cálculos está em uso. Os testes que acompanham o código comparam a integração numérica com as soluções fechadas e verificam a conservação da energia, o período dado pela integral da seção 6 e a correção de frequência citada ali.</p>
     </div>
+  </details>
 
-    <div class="texto" role="tabpanel" id="painelReferencias" aria-labelledby="abaReferencias" hidden>
+  <details class="painel dobra" id="painelReferencias">
+    <summary>Referências</summary>
+    <div class="texto">
       <h3>Osciladores</h3>
       <ul>
         <li>R. P. Feynman, R. B. Leighton e M. Sands, <i>The Feynman Lectures on Physics</i>, vol. I (Addison-Wesley, 1963). Capítulos <a href="https://www.feynmanlectures.caltech.edu/I_21.html" target="_blank" rel="noopener">21, The Harmonic Oscillator</a>; <a href="https://www.feynmanlectures.caltech.edu/I_23.html" target="_blank" rel="noopener">23, Resonance</a>; <a href="https://www.feynmanlectures.caltech.edu/I_24.html" target="_blank" rel="noopener">24, Transients</a>; e <a href="https://www.feynmanlectures.caltech.edu/I_25.html" target="_blank" rel="noopener">25, Linear Systems and Review</a>. No <a href="https://www.feynmanlectures.caltech.edu/I_09.html" target="_blank" rel="noopener">capítulo 9</a>, a seção 9–6 integra numericamente, passo a passo, o movimento de uma massa presa a uma mola. Edição brasileira: <i>Lições de Física de Feynman</i> (Bookman).</li>
@@ -271,7 +270,7 @@
         <li>As fórmulas são compostas pelo <a href="https://katex.org" target="_blank" rel="noopener">KaTeX</a> (licença MIT), incluído na página. O código desta página está sob a licença MIT.</li>
       </ul>
     </div>
-  </section>
+  </details>
 </main>
 
 <footer class="rodape">

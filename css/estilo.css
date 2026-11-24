@@ -203,13 +203,9 @@ legend { padding: 0; margin-bottom: 1px; color: var(--tinta-2); font-size: 11px;
 .etiqueta[data-regime="over"]::before { background: var(--serie-2); }
 .etiqueta[data-regime="critical"]::before { background: var(--tinta); }
 
-/* Tabs with the derivations and the references. */
-.abas-lista { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--borda); }
-.abas-lista button {
-  border: 0; border-bottom: 2px solid transparent; border-radius: 0; margin-bottom: -1px; padding: 6px 12px;
-  background: transparent; color: var(--tinta-2); font-weight: 600;
-}
-.abas-lista button[aria-selected="true"] { color: var(--tinta); border-bottom-color: var(--tinta); }
+/* Derivations and references: two panels, one above the other, each closed until its title is clicked. */
+.dobra > summary { cursor: pointer; font-size: 14px; font-weight: 650; }
+.dobra[open] > summary { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--borda); }
 .texto { max-width: 88ch; font-size: 14.5px; line-height: 1.6; }
 .texto h3 { margin: 22px 0 6px; font-size: 15px; font-weight: 650; }
 .texto > h3:first-child, .texto > .dica + h3 { margin-top: 10px; }
