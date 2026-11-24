@@ -15,6 +15,8 @@
  * The model is the object assembled by app.js:
  *   P, D          parameters and derived quantities (see fisica.js)
  *   x0, p0, T     initial conditions and duration
+ *   names         how the coordinate and its momentum are written: {q, p} axis labels [symbol, unit, subscript],
+ *                 qUnit, and V, the label of the potential (the coordinate is x, or theta for the pendulum)
  *   sol, en       the solution {t, x, p, n, dt, escaped, exact, step} and its energies {K, U, E}
  *   an            closed-form solution used for the curves (sol.exact), or null
  *   approx        closed form of the harmonic approximation of a nonlinear system, or null
@@ -43,6 +45,7 @@
   const FONT = '12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
   const SMALL = '10.5px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
   const ITALIC = 'italic 13px "KaTeX_Math", "Times New Roman", serif';
+  const SUBSCRIPT = 'italic 9.5px "KaTeX_Math", "Times New Roman", serif';
   const ROUND = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
 
   /** A step of 1, 2 or 5 times a power of ten that divides `span` into about `count` intervals. */
@@ -150,8 +153,9 @@
     }
 
     /**
-     * Grid, tick labels, frame and axis labels.  A label is [symbol, unit]: the symbol is set in italic, and
-     * the unit comes in parentheses, where a power of ten goes if one is taken out of the tick labels.
+     * Grid, tick labels, frame and axis labels.  A label is [symbol, unit, subscript]: the symbol is set in
+     * italic, with the optional subscript, and the unit comes in parentheses, where a power of ten goes if one
+     * is taken out of the tick labels.
      * With `zero` the lines x = 0 and y = 0 are drawn a little stronger.
      */
     axes(ctx, xLabel, yLabel, zero) {
@@ -159,7 +163,7 @@
       const xStep = niceStep(this.x[1] - this.x[0], Math.max(2, (right - left) / 70));
       const yStep = niceStep(this.y[1] - this.y[0], Math.max(2, (bottom - top) / 60));
       const xDecade = decade(this.x), yDecade = decade(this.y), xUnit = Math.pow(10, xDecade), yUnit = Math.pow(10, yDecade);
-      const withDecade = (parts, exponent) => (exponent ? [parts[0], parts[1].replace('(', '(10' + Fm.superscript(exponent) + ' ')] : parts);
+      const withDecade = (parts, exponent) => (exponent ? [parts[0], parts[1].replace('(', '(10' + Fm.superscript(exponent) + ' '), parts[2]] : parts);
       ctx.lineWidth = 1; ctx.font = FONT; ctx.fillStyle = css('--tinta-2');
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
       for (let v = Math.ceil(this.x[0] / xStep - 1e-9) * xStep; v <= this.x[1] + 1e-9 * xStep; v += xStep) {
@@ -179,12 +183,15 @@
       ctx.strokeRect(left + 0.5, top + 0.5, right - left, bottom - top);
 
       const label = (parts, x, y, align) => {
+        const below = parts[2] || '';
         ctx.font = ITALIC; const ws = ctx.measureText(parts[0]).width;
+        ctx.font = SUBSCRIPT; const wb = below ? ctx.measureText(below).width + 1 : 0;
         ctx.font = FONT; const wu = ctx.measureText(parts[1]).width;
-        const start = align === 'right' ? x - ws - wu : x;
+        const start = align === 'right' ? x - ws - wb - wu : x;
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = css('--tinta-2');
         ctx.font = ITALIC; ctx.fillText(parts[0], start, y);
-        ctx.font = FONT; ctx.fillText(parts[1], start + ws, y);
+        ctx.font = SUBSCRIPT; ctx.fillText(below, start + ws + 0.5, y + 3);
+        ctx.font = FONT; ctx.fillText(parts[1], start + ws + wb, y);
       };
       label(withDecade(xLabel, xDecade), right, this.h - 5, 'right');
       label(withDecade(yLabel, yDecade), 4, top - 10, 'left');
@@ -262,19 +269,19 @@
     }
 
     /**
-     * One curve of constant energy, p = +-sqrt(2 M (E - V(x))), over the visible range of x.
+     * One curve of constant energy, p = +-sqrt(2 I (E - V(x))), over the visible range of x (I = Fisica.inertia).
      * Where E - V changes sign between two samples the turning point is found by linear interpolation,
      * so that the two branches meet on the axis p = 0.
      */
     levelCurve(ctx, P, E) {
-      const fr = this.area, n = 240, dx = (fr.x[1] - fr.x[0]) / n;
+      const fr = this.area, n = 240, dx = (fr.x[1] - fr.x[0]) / n, inertia = F.inertia(P);
       const pieces = [];
       let piece = null, xPrev = 0, dPrev = -1;
       for (let i = 0; i <= n; i++) {
         const x = fr.x[0] + i * dx, d = E - F.potential(P, x);
         if (d >= 0) {
           if (!piece) { piece = []; pieces.push(piece); if (i > 0) piece.push([xPrev + dx * dPrev / (dPrev - d), 0]); }
-          piece.push([x, Math.sqrt(2 * P.M * d)]);
+          piece.push([x, Math.sqrt(2 * inertia * d)]);
         } else if (piece) {
           piece.push([xPrev + dx * dPrev / (dPrev - d), 0]);
           piece = null;
@@ -294,7 +301,7 @@
       const fr = this.area, { P, sol, view } = model;
       fr.x = [-view.xr, view.xr]; fr.y = [-view.pr, view.pr];
       const ctx = fr.begin();
-      fr.axes(ctx, ['x', ' (m)'], ['p', ' (kg·m/s)'], true);
+      fr.axes(ctx, model.names.q, model.names.p, true);
       fr.clip(ctx);
       const visible = model.eq.filter(e => Math.abs(e.x) <= view.xr * (1 + 1e-9));
 
@@ -303,7 +310,7 @@
       // go as the square of j, which spaces the ellipses of the harmonic oscillator evenly.
       let vWell = 0;
       for (const e of visible) if (e.stable) vWell = Math.min(vWell, F.potential(P, e.x));
-      const eTop = view.pr * view.pr / (2 * P.M);
+      const eTop = view.pr * view.pr / (2 * F.inertia(P));
       ctx.strokeStyle = css('--nivel'); ctx.lineWidth = 1;
       for (let j = 1; j <= 8; j++) this.levelCurve(ctx, P, vWell + (eTop - vWell) * (j / 8) * (j / 8));
       // Separatrices: the curves through the unstable equilibria.
@@ -347,7 +354,8 @@
     /**
      * The moving point, the stretch of trajectory just behind it, and the arrows at the point.
      *
-     * The tangent to the trajectory is (x', p') = (velocity, total force).  The arrows show this vector and
+     * The tangent to the trajectory is (x', p') = (velocity, total force); for the pendulum, (angular velocity,
+     * total torque), and the external "force" is the torque F0 L cos(w t).  The arrows show this vector and
      * its two components multiplied by the time tau, that is, the displacement in the diagram during tau if
      * the rates stayed as they are: velocity (horizontal) and total force (vertical) in gray, their sum in
      * the color of the text, and the external force F0 cos(w t), a part of the total force, thicker and red.
@@ -362,8 +370,8 @@
       const tail = Math.max(0, i - Math.round(0.6 / sol.dt));
       fr.line(ctx, model.xw, sol.p, tail, i + 1, { color: css('--serie-1'), width: 3.5, jump: model.wrap });
 
-      const x = model.xw[i], p = sol.p[i], velocity = p / P.M;
-      const external = P.F0 * Math.cos(P.w * sol.t[i]), total = F.force(P, sol.x[i]) - P.b * velocity + external;
+      const x = model.xw[i], p = sol.p[i], velocity = p / F.inertia(P);
+      const external = F.drive(P) * Math.cos(P.w * sol.t[i]), total = F.force(P, sol.x[i]) - P.b / P.M * p + external;
       const ox = fr.X(x), oy = fr.Y(p);
       const ex = fr.X(x + velocity * model.tau), ey = fr.Y(p + total * model.tau);
       arrow(ctx, ox, oy, ex, oy, css('--tinta-2'), 1.25);
@@ -449,10 +457,10 @@
       ctx.stroke();
       ctx.restore();
       ctx.fillStyle = css('--tinta-2'); ctx.textBaseline = 'alphabetic';
-      ctx.font = ITALIC; ctx.textAlign = 'center'; ctx.fillText('V(x)', box.x + box.w / 2, box.y + 14);
+      ctx.font = ITALIC; ctx.textAlign = 'center'; ctx.fillText(model.names.V, box.x + box.w / 2, box.y + 14);
       ctx.font = SMALL; ctx.textAlign = 'left';
       ctx.fillText(brief(-box.xr), box.x + 4, box.y + box.h - 3);
-      ctx.textAlign = 'right'; ctx.fillText(brief(box.xr) + ' m', box.x + box.w - 4, box.y + box.h - 3);
+      ctx.textAlign = 'right'; ctx.fillText(brief(box.xr) + ' ' + model.names.qUnit, box.x + box.w - 4, box.y + box.h - 3);
     }
 
     update(model) {
@@ -495,7 +503,7 @@
       const fr = this.area, { sol, an, view } = model;
       fr.x = [0, model.tAxis]; fr.y = model.xRange;
       const ctx = fr.begin();
-      fr.axes(ctx, ['t', ' (s)'], ['x', ' (m)'], true);
+      fr.axes(ctx, ['t', ' (s)'], model.names.q, true);
       fr.clip(ctx);
       if (an && an.kind === 'linear' && an.particular !== 'none' && model.components) {
         fr.line(ctx, sol.t, i => an.xh(sol.t[i]), 0, sol.n, { color: css('--serie-2'), width: 1.2 });

@@ -5,7 +5,7 @@
  *
  *   equation(P)                {symbolic, numeric}: the equation with only the terms that are present
  *   solution(P, D, an)         {regime, formula, definitions, values, note}: the closed form when there is one
- *   potential(P)               V(x) = ... of the system
+ *   potential(P)               V(x) = ... of the oscillator, or V(theta) = ... of the pendulum
  *   method(step)               the sentence that says how the curves were computed
  *   tex(v), text(v), fixed(v, decimals)     a number as LaTeX and as plain text
  *   superscript(n)                          an integer in superscript characters (exponents in plain text)
@@ -73,26 +73,31 @@
    * `symbolic` uses the symbols of the controls; `numeric` has their current values (SI units).
    */
   function equation(P) {
-    const pendulum = P.system === 'pendulum';
+    const forcing = (amplitude, value) => (P.F0 !== 0
+      ? [amplitude + (P.w !== 0 ? '\\cos(\\omega t)' : ''), tex(value) + (P.w !== 0 ? '\\cos(' + tex(P.w) + '\\,t)' : '')] : ['0', '0']);
+    if (P.system === 'pendulum') {
+      // Torques about the pivot: M L^2 theta'' + b L^2 theta' + M g L sin(theta) = F0 L cos(w t).
+      const L2 = P.L * P.L, terms = [{ c: P.M * L2, t: '\\ddot{\\theta}' }];
+      let symbolic = 'M L^2\\,\\ddot{\\theta}';
+      if (P.b !== 0) { symbolic += ' + b L^2\\,\\dot{\\theta}'; terms.push({ c: P.b * L2, t: '\\dot{\\theta}' }); }
+      symbolic += ' + M g L\\operatorname{sen}\\theta';
+      terms.push({ c: P.M * P.g * P.L, t: '\\operatorname{sen}\\theta' });
+      const rhs = forcing('F_0 L', P.F0 * P.L);
+      return { symbolic: symbolic + ' = ' + rhs[0], numeric: sum(terms) + ' = ' + rhs[1] };
+    }
     let symbolic = 'M\\,\\ddot{x}';
     const terms = [{ c: P.M, t: '\\ddot{x}' }];
     if (P.b !== 0) { symbolic += ' + b\\,\\dot{x}'; terms.push({ c: P.b, t: '\\dot{x}' }); }
-    if (pendulum) {
-      symbolic += ' + M g\\,\\operatorname{sen}\\!\\left(\\dfrac{x}{L}\\right)';
-      terms.push({ c: P.M * P.g, t: '\\operatorname{sen}\\!\\left(\\dfrac{x}{' + tex(P.L) + '}\\right)' });
-    } else {
-      symbolic += ' + k\\,x'; terms.push({ c: P.k, t: 'x' });
-      if (P.l3 !== 0) { symbolic += ' + \\lambda_3\\,x^2'; terms.push({ c: P.l3, t: 'x^2' }); }
-      if (P.l4 !== 0) { symbolic += ' + \\lambda_4\\,x^3'; terms.push({ c: P.l4, t: 'x^3' }); }
-    }
-    const rhsSymbolic = P.F0 !== 0 ? (P.w !== 0 ? 'F_0\\cos(\\omega t)' : 'F_0') : '0';
-    const rhsNumeric = P.F0 !== 0 ? tex(P.F0) + (P.w !== 0 ? '\\cos(' + tex(P.w) + '\\,t)' : '') : '0';
-    return { symbolic: symbolic + ' = ' + rhsSymbolic, numeric: sum(terms) + ' = ' + rhsNumeric };
+    symbolic += ' + k\\,x'; terms.push({ c: P.k, t: 'x' });
+    if (P.l3 !== 0) { symbolic += ' + \\lambda_3\\,x^2'; terms.push({ c: P.l3, t: 'x^2' }); }
+    if (P.l4 !== 0) { symbolic += ' + \\lambda_4\\,x^3'; terms.push({ c: P.l4, t: 'x^3' }); }
+    const rhs = forcing('F_0', P.F0);
+    return { symbolic: symbolic + ' = ' + rhs[0], numeric: sum(terms) + ' = ' + rhs[1] };
   }
 
   /** The potential energy of the system, as LaTeX. */
   function potential(P) {
-    if (P.system === 'pendulum') return 'V(x) = M g L\\left[1 - \\cos\\!\\left(\\dfrac{x}{L}\\right)\\right]';
+    if (P.system === 'pendulum') return 'V(\\theta) = M g L\\,(1 - \\cos\\theta)';
     return 'V(x) = \\tfrac{1}{2}k\\,x^2 + \\tfrac{1}{3}\\lambda_3\\,x^3 + \\tfrac{1}{4}\\lambda_4\\,x^4';
   }
 
@@ -171,9 +176,9 @@
 
   /** Exact solution of the pendulum without friction or forcing (see Fisica.analytic). */
   function pendulum(out, P, D, an) {
-    // The formulas are written for the well in which the motion starts; `shifted` is x measured from its bottom.
-    const shifted = an.base === 0 ? 'x(t)' : 'x(t) - x_n';
-    if (an.base !== 0) out.values.push('x_n = ' + tex(an.base) + unit('m'));
+    // The formulas are written for the well in which the motion starts; `shifted` is the angle measured from its bottom.
+    const shifted = an.base === 0 ? '\\theta(t)' : '\\theta(t) - \\theta_n';
+    if (an.base !== 0) out.values.push('\\theta_n = ' + tex(an.base) + unit('rad'));
     const time = (rate) => (an.sign < 0 ? '-' : '') + rate + ' t + u_0';
     out.definitions.push('\\omega_0 = \\sqrt{g/L}', '\\kappa^2 = \\dfrac{E}{2MgL}');
     out.values.push('\\kappa = ' + tex(an.kappa, 4));
@@ -181,21 +186,21 @@
     const harmonicPeriod = '2\\pi/\\omega_0 = ' + tex(2 * Math.PI / D.w0) + unit('s');
 
     if (an.motion === 'libration') {
-      out.formula = '\\operatorname{sen}\\dfrac{' + shifted + '}{2L} = \\kappa\\,\\operatorname{sn}(\\omega_0 t + u_0,\\ \\kappa)';
+      out.formula = '\\operatorname{sen}\\dfrac{' + shifted + '}{2} = \\kappa\\,\\operatorname{sn}(\\omega_0 t + u_0,\\ \\kappa)';
       out.definitions.push('T = \\dfrac{4K(\\kappa)}{\\omega_0}');
       out.values.push('\\theta_{\\text{máx}} = ' + tex(an.amplitude) + unit('rad'), 'T = ' + tex(an.period) + unit('s'), harmonicPeriod);
       out.note = 'Solução exata, em funções elípticas de Jacobi: sn é o seno elíptico de módulo κ e K(κ) a integral elíptica ' +
-        'completa de primeira espécie. κ = sen(θmáx/2), sendo θmáx a amplitude do ângulo θ = x/L; u₀ é fixado pelas ' +
+        'completa de primeira espécie. κ = sen(θmáx/2), sendo θmáx a amplitude da oscilação; u₀ é fixado pelas ' +
         'condições iniciais. ' +
         'Para κ → 0, sn → sen e T → 2π/ω₀: o oscilador harmônico.';
     } else if (an.motion === 'rotation') {
-      out.formula = shifted + ' = 2L\\,\\operatorname{am}(' + time('\\kappa\\,\\omega_0') + ',\\ 1/\\kappa)';
+      out.formula = shifted + ' = 2\\operatorname{am}(' + time('\\kappa\\,\\omega_0') + ',\\ 1/\\kappa)';
       out.definitions.push('T_{\\text{volta}} = \\dfrac{2K(1/\\kappa)}{\\kappa\\,\\omega_0}');
       out.values.push('T_{\\text{volta}} = ' + tex(an.period) + unit('s'), harmonicPeriod);
       out.note = 'Solução exata: am é a amplitude de Jacobi, de módulo 1/κ. Com κ > 1 a energia supera a da posição ' +
         'invertida (E > 2MgL) e o pêndulo gira sempre no mesmo sentido; u₀ é fixado pelas condições iniciais.';
     } else {
-      out.formula = '\\operatorname{sen}\\dfrac{' + shifted + '}{2L} = \\tanh(' + time('\\omega_0') + ')';
+      out.formula = '\\operatorname{sen}\\dfrac{' + shifted + '}{2} = \\tanh(' + time('\\omega_0') + ')';
       out.note = 'Separatriz: a energia é exatamente a da posição invertida (E = 2MgL, κ = 1). O pêndulo se aproxima ' +
         'dela sem nunca a alcançar; o período é infinito.';
     }
@@ -217,13 +222,13 @@
     if (an && an.kind === 'linear') linear(out, P, D, an);
     else if (an && an.kind === 'pendulum') pendulum(out, P, D, an);
     else if (an && an.kind === 'rest') {
-      out.formula = 'x(t) = x_0';
+      out.formula = P.system === 'pendulum' ? '\\theta(t) = \\theta_0' : 'x(t) = x_0';
       out.note = an.stable
         ? 'A massa está em repouso sobre um ponto de equilíbrio estável e aí permanece.'
         : 'A massa está em repouso sobre um ponto de equilíbrio instável: aí permanece, mas qualquer perturbação a afasta.';
     } else if (P.system === 'pendulum') {
       out.note = 'Com amortecimento ou força externa a curva é a solução numérica (Runge–Kutta de 4ª ordem). ' +
-        'ω₀, γ e Q referem-se à aproximação harmônica, k = Mg/L, válida para |x| ≪ L.';
+        'ω₀, γ e Q referem-se à aproximação harmônica, sen θ ≈ θ, válida para |θ| ≪ 1.';
     } else {
       out.note = 'Com termos anarmônicos não há solução em funções elementares: a curva é a solução ' +
         'numérica (Runge–Kutta de 4ª ordem). ω₀, γ e Q referem-se à parte linear, ' +

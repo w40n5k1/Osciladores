@@ -23,7 +23,8 @@
  * Pendulum
  * 10. Elliptic integrals and Jacobi functions agree with direct quadrature and with their defining identities.
  * 11. The exact solution satisfies the equation of motion and the initial conditions, conserves the energy,
- *     and agrees with Runge-Kutta, for libration, rotation and the separatrix.
+ *     and agrees with Runge-Kutta, for libration, rotation and the separatrix.  The equations in the angle
+ *     and the angular momentum are Newton's second law along the path, with friction and forcing.
  * 12. The period is 4 K / w0: it matches the simulated one, and for small amplitude the series
  *     T0 (1 + a^2/16 + 11 a^4/3072).  A small oscillation coincides with the harmonic approximation.
  * The solution shown by the page
@@ -50,7 +51,7 @@ function distance(sol, P, an) {
   let dx = 0, dp = 0, scale = 0;
   for (let i = 0; i < sol.n; i++) {
     dx = Math.max(dx, Math.abs(sol.x[i] - an.x(sol.t[i])));
-    dp = Math.max(dp, Math.abs(sol.p[i] - P.M * an.v(sol.t[i])));
+    dp = Math.max(dp, Math.abs(sol.p[i] - F.inertia(P) * an.v(sol.t[i])));
     scale = Math.max(scale, Math.abs(sol.x[i]));
   }
   return { dx, dp, scale };
@@ -208,7 +209,7 @@ test('equilibria are zeros of the force, stable where the potential has a minimu
     const eq = F.equilibria(P);
     assert.strictEqual(eq.length, count, JSON.stringify(P));
     for (const e of eq) {
-      assert.ok(Math.abs(F.force(P, e.x)) < 1e-12 * (P.system === 'pendulum' ? P.M * P.g : 1));
+      assert.ok(Math.abs(F.force(P, e.x)) < 1e-12 * (P.system === 'pendulum' ? P.M * P.g * P.L : 1));
       const h = 1e-4, curvature = (F.potential(P, e.x + h) - 2 * F.potential(P, e.x) + F.potential(P, e.x - h)) / (h * h);
       assert.strictEqual(e.stable, curvature > 0);
       assert.ok(Math.abs(curvature - F.curvature(P, e.x)) < 1e-5 * Math.abs(curvature));
@@ -254,8 +255,8 @@ test('elliptic integrals and Jacobi functions', () => {
   assert.ok(Math.abs(F.jacobi(0)(0.7).sn - Math.sin(0.7)) < 1e-15, 'for m = 0, sn is the sine');
 });
 
-/** Initial conditions of the pendulum: [name, x0, p0, expected motion]. */
-const SEPARATRIX_P = 2 * PENDULUM.M * Math.sqrt(PENDULUM.g * PENDULUM.L);       // momentum that just reaches the top from x = 0
+/** Initial conditions of the pendulum: [name, theta0, p_theta0, expected motion]. */
+const SEPARATRIX_P = 2 * F.inertia(PENDULUM) * Math.sqrt(PENDULUM.g / PENDULUM.L);   // angular momentum that just reaches the top from theta = 0
 const SWINGS = [
   ['small oscillation', 0.3, 0, 'libration'],
   ['large oscillation', 2.8, 0, 'libration'],
@@ -270,19 +271,42 @@ const SWINGS = [
 ];
 
 test('pendulum: exact solution satisfies the equation of motion and conserves the energy', () => {
-  const P = pendulum({ M: 1.4, L: 0.8 }), scale = P.M / PENDULUM.M * Math.sqrt(P.L / PENDULUM.L);
-  for (const [name, x0, p0raw, motion] of SWINGS) {
-    const p0 = p0raw * scale * (motion === 'rotation' || name.includes('separatrix') ? 1 : 1), an = F.analytic(P, x0 * P.L, p0);
+  // Another mass and length: the momenta of SWINGS scale as I w0 = M L^2 sqrt(g / L), the angles do not change.
+  const P = pendulum({ M: 1.4, L: 0.8 }), I = F.inertia(P);
+  const scale = I * Math.sqrt(P.g / P.L) / (F.inertia(PENDULUM) * Math.sqrt(PENDULUM.g / PENDULUM.L));
+  assert.ok(Math.abs(I - 1.4 * 0.64) < 1e-15);
+  for (const [name, x0, p0raw] of SWINGS) {
+    const p0 = p0raw * scale, an = F.analytic(P, x0, p0);
     assert.strictEqual(an.kind, 'pendulum');
-    assert.ok(Math.abs(an.x(0) - x0 * P.L) < 1e-12 && Math.abs(P.M * an.v(0) - p0) < 1e-11, name + ': initial conditions');
-    const E0 = F.energy(P, x0 * P.L, p0), h = 1e-4;
+    assert.ok(Math.abs(an.x(0) - x0) < 1e-12 && Math.abs(I * an.v(0) - p0) < 1e-11, name + ': initial conditions');
+    const E0 = F.energy(P, x0, p0), h = 1e-4;
     for (const t of [0.2, 0.9, 2.3, 5.1, 11.7]) {
       const acc = (an.x(t + h) - 2 * an.x(t) + an.x(t - h)) / (h * h), vel = (an.x(t + h) - an.x(t - h)) / (2 * h);
-      assert.ok(Math.abs(P.M * acc - F.force(P, an.x(t))) < 2e-5 * P.M * P.g, `${name}: residual at t = ${t}`);
-      assert.ok(Math.abs(vel - an.v(t)) < 1e-6, name + ': v(t) is the derivative of x(t)');
-      assert.ok(Math.abs(F.energy(P, an.x(t), P.M * an.v(t)) - E0) < 1e-10 * P.M * P.g * P.L, name + ': energy');
+      assert.ok(Math.abs(I * acc - F.force(P, an.x(t))) < 2e-5 * P.M * P.g * P.L, `${name}: residual at t = ${t}`);
+      assert.ok(Math.abs(vel - an.v(t)) < 1e-6, name + ': v(t) is the derivative of theta(t)');
+      assert.ok(Math.abs(F.energy(P, an.x(t), I * an.v(t)) - E0) < 1e-10 * P.M * P.g * P.L, name + ': energy');
     }
   }
+});
+
+test('pendulum: the equations in theta are Newton\'s second law along the path', () => {
+  // Independent of inertia(), drive() and of the code of the integrator: the arc length s = L theta of the
+  // numerical solution must obey  M s'' = -M g sin(s / L) - b s' + F0 cos(w t),  with s' = p_theta / (M L).
+  const P = pendulum({ M: 0.6, L: 1.7, g: 9.81, b: 0.35, F0: 2.2, w: 1.9 }), dt = 0.001;
+  const sol = F.integrate(P, 0.9, -0.4, 12, { dtOut: dt, substeps: 4 });
+  let worst = 0;
+  for (let i = 1; i < sol.n - 1; i++) {
+    const s = P.L * sol.x[i], acc = P.L * (sol.x[i + 1] - 2 * sol.x[i] + sol.x[i - 1]) / (dt * dt), v = sol.p[i] / (P.M * P.L);
+    worst = Math.max(worst, Math.abs(P.M * acc + P.M * P.g * Math.sin(s / P.L) + P.b * v - P.F0 * Math.cos(P.w * sol.t[i])));
+    assert.ok(Math.abs(P.L * (sol.x[i + 1] - sol.x[i - 1]) / (2 * dt) - v) < 1e-5, 'the velocity is p_theta / (M L)');
+  }
+  assert.ok(worst < 1e-5 * P.M * P.g, 'residual of Newton\'s law: ' + worst);
+  // The energy changes by the work of friction and of the external force: dE/dt = -b v^2 + F0 cos(w t) v.
+  let work = 0;
+  const power = i => { const v = sol.p[i] / (P.M * P.L); return -P.b * v * v + P.F0 * Math.cos(P.w * sol.t[i]) * v; };
+  for (let i = 1; i < sol.n; i++) work += dt * (power(i - 1) + power(i)) / 2;
+  const gained = F.energy(P, sol.x[sol.n - 1], sol.p[sol.n - 1]) - F.energy(P, sol.x[0], sol.p[0]);
+  assert.ok(Math.abs(gained - work) < 1e-5 * P.M * P.g * P.L, `energy balance: ${gained} against ${work}`);
 });
 
 test('pendulum: exact solution agrees with Runge-Kutta, and the motions are told apart', () => {
@@ -296,7 +320,7 @@ test('pendulum: exact solution agrees with Runge-Kutta, and the motions are told
   }
   const top = F.analytic(PENDULUM, 0, SEPARATRIX_P);
   assert.ok(Math.abs(top.x(40) - Math.PI) < 1e-12 && top.x(40) <= Math.PI, 'on the separatrix the top is approached, not passed');
-  assert.ok(F.analytic(PENDULUM, 0, 7).x(20) > 20 * Math.PI, 'in rotation x keeps growing');
+  assert.ok(F.analytic(PENDULUM, 0, 7).x(20) > 20 * Math.PI, 'in rotation the angle keeps growing');
 });
 
 test('pendulum: period, and the harmonic limit', () => {
@@ -314,9 +338,15 @@ test('pendulum: period, and the harmonic limit', () => {
   const turn = F.analytic(PENDULUM, 0, 7);
   assert.ok(Math.abs(turn.x(turn.period) - 2 * Math.PI) < 1e-10, 'in rotation one turn takes the period');
 
-  // A small oscillation is the harmonic oscillator with k = M g / L, up to terms of relative order amplitude^2.
-  const small = 1e-3, P = pendulum({ M: 0.7 }), H = F.harmonicApproximation(P);
-  assert.ok(Math.abs(H.k - P.M * P.g / P.L) < 1e-15 && H.system === 'oscillator');
+  // A small oscillation is a harmonic oscillator in theta, of inertia M L^2 and constant M g L, up to terms of
+  // relative order amplitude^2; with friction and forcing its coefficients are b L^2 and F0 L.
+  const small = 1e-3, P = pendulum({ M: 0.7, L: 1.6 }), H = F.harmonicApproximation(P);
+  assert.ok(Math.abs(H.k - P.M * P.g * P.L) < 1e-14 && Math.abs(H.M - P.M * P.L * P.L) < 1e-15 && H.system === 'oscillator');
+  const full = pendulum({ M: 0.7, L: 1.6, b: 0.9, F0: 0.4 }), HF = F.harmonicApproximation(full);
+  assert.ok(Math.abs(HF.b - 0.9 * 1.6 * 1.6) < 1e-15 && Math.abs(HF.F0 - 0.4 * 1.6) < 1e-15);
+  assert.ok(Math.abs(F.derived(HF).w0 - F.derived(full).w0) < 1e-14 && Math.abs(F.derived(HF).gamma - F.derived(full).gamma) < 1e-15);
+  const tiny = pendulum({ M: 0.7, L: 1.6, b: 0.9, F0: 1e-3 }), dForced = distance(F.solve(tiny, small, 0, 10), tiny, F.analytic(F.harmonicApproximation(tiny), small, 0));
+  assert.ok(dForced.dx < 1e-5 * small, 'damped, forced small oscillation against the harmonic approximation: ' + dForced.dx);
   const d = distance(F.solve(P, small, 0, 10), P, F.analytic(H, small, 0));
   assert.ok(d.dx < 1e-5 * small, 'small oscillation against the harmonic approximation: ' + d.dx);
 });
@@ -356,12 +386,12 @@ test('solve: the step is shortened when the motion is fast', () => {
   assert.ok(Math.abs(F.solve(P, 100, 0, 120).step - 0.005 / 62) < 1e-15);
   // Strong friction on a light mass: b / M = 100 per second.
   assert.strictEqual(F.solve(with_({ M: 0.1, b: 10, l4: 1 }), 1, 0, 10).step, 5e-4);
-  // A pendulum spinning fast: the force changes at the rate p / (M L) = 300 rad/s.
+  // A pendulum spinning fast: the torque changes at the rate p / (M L^2) = 300 rad/s.
   assert.ok(Math.abs(F.solve(pendulum({ b: 0.01 }), 0, 300, 10).step - 0.005 / 30) < 1e-15);
 });
 
 test('solve: a mass at rest on an equilibrium point stays there', () => {
-  for (const [P, x0, stable] of [[pendulum({ b: 0.3 }), Math.PI, false], [pendulum({ L: 2, b: 0 }), -2 * Math.PI, false],
+  for (const [P, x0, stable] of [[pendulum({ b: 0.3 }), Math.PI, false], [pendulum({ L: 2, b: 0 }), -Math.PI, false],
     [pendulum({ b: 0.3 }), 0, true], [with_({ l4: 2, b: 1 }), 0, true]]) {
     const sol = F.solve(P, x0, 0, 60);
     assert.ok(sol.exact && sol.exact.kind === 'rest' && sol.exact.stable === stable);

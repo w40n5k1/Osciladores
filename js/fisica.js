@@ -8,19 +8,26 @@
  *
  * so l3 and l4 multiply x^2 and x^3 in the FORCE (x^3/3 and x^4/4 in the potential).
  *
- * Pendulum (P.system = 'pendulum').  A mass M on a rigid rod of length L, in gravity g.  The coordinate x is
- * the arc length along the circular path, measured from the lowest point: the angle is x / L.  Friction and
- * the external force act along the path, so the tangential component of Newton's law reads
+ * Pendulum (P.system = 'pendulum').  A mass M on a rigid rod of length L, in gravity g.  The coordinate is the
+ * angle theta with the downward vertical.  The friction -b v and the external force F0 cos(w t) act on the mass
+ * along its circular path (v = L theta'), so the torques about the pivot give
  *
- *     M x'' + b x' + M g sin(x / L) = F0 cos(w t) ,               V(x) = M g L [1 - cos(x / L)] .
+ *     M L^2 theta'' + b L^2 theta' + M g L sin(theta) = F0 L cos(w t) ,      V(theta) = M g L (1 - cos theta) .
  *
- * In both systems p = M x' is the momentum conjugate to x, and the units are SI.  For |x| << L the pendulum
- * is the oscillator with k = M g / L: that is its "harmonic approximation".
+ * One code serves both.  In the functions below `x` is the coordinate (x in m, or theta in rad) and `p` its
+ * conjugate momentum: p = M x' (kg m/s), or the angular momentum p_theta = M L^2 theta' (kg m^2/s).  With
+ *
+ *     inertia(P)   I = M        or  M L^2          so that  x' = p / I  and the kinetic energy is p^2 / 2I
+ *     drive(P)     G = F0       or  F0 L           amplitude of the external (generalized) force
+ *
+ * both obey   x' = p / I ,   p' = -dV/dx - (b/M) p + G cos(w t) .   Units are SI.  For |theta| << 1 the pendulum
+ * is a linear oscillator in theta, of "mass" M L^2 and "spring constant" M g L: its harmonic approximation.
  *
  * A set of parameters is a plain object  P = {system, M, k, b, l3, l4, F0, w, L, g};  k, l3 and l4 are used
  * by the oscillator only, L and g by the pendulum only.  M, k, L and g are positive.
  *
  * What is here:
+ *   inertia(P), drive(P)         see above
  *   derived(P)                   natural frequency, damping rate and regime, resonance, critical values
  *   potential, force, curvature, energy
  *   equilibria(P), confining(P)
@@ -57,14 +64,29 @@
 
   // ----------------------------------------------------------------------------------- parameters
 
-  /** Constant of the linear part of the restoring force: k, or M g / L for the pendulum. */
-  function stiffness(P) {
-    return isPendulum(P) ? P.M * P.g / P.L : P.k;
+  /** Inertia I of the coordinate: x' = p / I.  The mass, or the moment of inertia M L^2 of the pendulum. */
+  function inertia(P) {
+    return isPendulum(P) ? P.M * P.L * P.L : P.M;
   }
 
-  /** The linear oscillator that P reduces to for small amplitudes (same M, b and forcing). */
+  /** Amplitude of the external generalized force: the force F0, or the torque F0 L on the pendulum. */
+  function drive(P) {
+    return isPendulum(P) ? P.F0 * P.L : P.F0;
+  }
+
+  /** Constant of the linear part of the restoring force: k, or M g L (torque per radian) for the pendulum. */
+  function stiffness(P) {
+    return isPendulum(P) ? P.M * P.g * P.L : P.k;
+  }
+
+  /**
+   * The linear oscillator that P reduces to for small amplitudes, as a set of oscillator parameters.
+   * For the pendulum these are the coefficients of the equation in theta: "mass" M L^2, "friction" b L^2,
+   * "spring constant" M g L and "force" F0 L.  Its natural frequency and damping rate are those of P.
+   */
   function harmonicApproximation(P) {
-    return { system: 'oscillator', M: P.M, k: stiffness(P), b: P.b, l3: 0, l4: 0, F0: P.F0, w: P.w };
+    const arm2 = isPendulum(P) ? P.L * P.L : 1;
+    return { system: 'oscillator', M: inertia(P), k: stiffness(P), b: P.b * arm2, l3: 0, l4: 0, F0: drive(P), w: P.w };
   }
 
   /**
@@ -106,38 +128,36 @@
     };
   }
 
-  /** Potential energy V(x). */
+  /** Potential energy V(x); for the pendulum x is the angle. */
   function potential(P, x) {
-    if (isPendulum(P)) return P.M * P.g * P.L * (1 - Math.cos(x / P.L));
+    if (isPendulum(P)) return P.M * P.g * P.L * (1 - Math.cos(x));
     return x * x * (P.k / 2 + x * (P.l3 / 3 + x * P.l4 / 4));
   }
 
-  /** Conservative force -dV/dx. */
+  /** Conservative force -dV/dx; for the pendulum, the torque of the weight. */
   function force(P, x) {
-    if (isPendulum(P)) return -P.M * P.g * Math.sin(x / P.L);
+    if (isPendulum(P)) return -P.M * P.g * P.L * Math.sin(x);
     return -x * (P.k + x * (P.l3 + x * P.l4));
   }
 
   /** Curvature of the potential, d2V/dx2. */
   function curvature(P, x) {
-    if (isPendulum(P)) return P.M * P.g / P.L * Math.cos(x / P.L);
+    if (isPendulum(P)) return P.M * P.g * P.L * Math.cos(x);
     return P.k + x * (2 * P.l3 + 3 * x * P.l4);
   }
 
-  /** Mechanical energy p^2/2M + V(x). */
+  /** Mechanical energy p^2/2I + V(x). */
   function energy(P, x, p) {
-    return p * p / (2 * P.M) + potential(P, x);
+    return p * p / (2 * inertia(P)) + potential(P, x);
   }
 
   /**
    * Equilibrium points, in increasing order.  Each is {x, stable}: stable where the potential has a minimum.
    * Oscillator: the zeros of x (k + l3 x + l4 x^2).  Pendulum: the lowest point and the two inverted positions
-   * at x = -+ pi L that bound one turn (the same point of the circle).
+   * at theta = -+ pi that bound one turn (the same point of the circle).
    */
   function equilibria(P) {
-    if (isPendulum(P)) {
-      return [{ x: -Math.PI * P.L, stable: false }, { x: 0, stable: true }, { x: Math.PI * P.L, stable: false }];
-    }
+    if (isPendulum(P)) return [{ x: -Math.PI, stable: false }, { x: 0, stable: true }, { x: Math.PI, stable: false }];
     const xs = [0];
     if (P.l4 === 0) {
       if (P.l3 !== 0) xs.push(-P.k / P.l3);
@@ -240,7 +260,7 @@
    *
    * delta between 0 and pi.  Returns {A, delta}; null when there is no forcing or when A is infinite
    * (no damping and w = w0 exactly).  For the pendulum and the anharmonic oscillator this is the steady state
-   * of the harmonic approximation.
+   * of the harmonic approximation (for the pendulum F0/M stands for F0 L / M L^2, and A is an angle).
    */
   function steadyState(P) {
     if (P.F0 === 0) return null;
@@ -248,7 +268,7 @@
     const re = D.w0 * D.w0 - P.w * P.w, im = 2 * D.gamma * P.w;
     const den = Math.hypot(re, im);
     if (den <= CRITICAL_TOL * D.w0 * D.w0) return null;
-    return { A: (P.F0 / P.M) / den, delta: Math.atan2(im, re) };
+    return { A: (drive(P) / inertia(P)) / den, delta: Math.atan2(im, re) };
   }
 
   /**
@@ -312,9 +332,9 @@
   }
 
   /**
-   * Exact solution of the pendulum without friction or forcing.
+   * Exact solution of the pendulum without friction or forcing, theta(0) = x0 and p_theta(0) = p0.
    *
-   * With theta = x/L and w0 = sqrt(g/L), the energy E = p^2/2M + M g L (1 - cos theta) is constant.  Writing
+   * With w0 = sqrt(g/L), the energy E = p^2 / (2 M L^2) + M g L (1 - cos theta) is constant.  Writing
    * kappa^2 = E / (2 M g L) and 1 - cos theta = 2 sin^2(theta/2):
    *
    *     theta'^2 = 4 w0^2 [kappa^2 - sin^2(theta/2)] .
@@ -330,16 +350,16 @@
    *       never reached.  (Written below as theta = 2 atan(sinh u), the same function.)
    *
    * u0 is fixed by the initial condition through the incomplete integral F.  Returns
-   * {kind: 'pendulum', motion, kappa, u0, sign, base, period, amplitude, x(t), v(t)}: sign is that of the
-   * initial velocity, base the bottom of the well the motion starts in, amplitude is theta_max.  x is not
-   * reduced to one turn.
+   * {kind: 'pendulum', motion, kappa, u0, sign, base, period, amplitude, x(t), v(t)}: x is theta and v is
+   * theta'; sign is that of the initial angular velocity, base the bottom of the well the motion starts in
+   * (a multiple of 2 pi), amplitude is theta_max.  The angle is not reduced to one turn.
    */
   function pendulumExact(P, x0, p0) {
-    const L = P.L, w0 = Math.sqrt(P.g / L), turn = 2 * Math.PI * L;
-    // Lowest point of the well the motion starts in (x0 = -+ pi L counts as the well around 0), and the
-    // initial angle, in [-pi, pi], and angular velocity.
+    const w0 = Math.sqrt(P.g / P.L), turn = 2 * Math.PI;
+    // Lowest point of the well the motion starts in (theta0 = -+ pi counts as the well around 0), and the
+    // initial angle measured from it, in [-pi, pi], and angular velocity.
     const base = Math.abs(x0) <= turn / 2 ? 0 : turn * Math.round(x0 / turn);
-    const theta0 = (x0 - base) / L, rate0 = p0 / (P.M * L);
+    const theta0 = x0 - base, rate0 = p0 / inertia(P);
     const s0 = Math.sin(theta0 / 2), c0 = Math.cos(theta0 / 2), r0 = rate0 / (2 * w0);
     const m = s0 * s0 + r0 * r0;                               // kappa^2
     const mc = c0 * c0 - r0 * r0;                              // 1 - kappa^2
@@ -351,31 +371,31 @@
       const u = t => sign * w0 * t + u0;
       return Object.assign(out, {
         motion: 'separatrix', u0, period: Infinity, amplitude: Math.PI,
-        x: t => base + 2 * L * Math.atan(Math.sinh(u(t))),
-        v: t => 2 * L * w0 * sign / Math.cosh(u(t)),
+        x: t => base + 2 * Math.atan(Math.sinh(u(t))),
+        v: t => 2 * w0 * sign / Math.cosh(u(t)),
       });
     }
     if (mc > 0) {
       const fn = jacobi(m, mc), u0 = ellipticF(Math.atan2(s0, r0), m, mc);
       return Object.assign(out, {
         motion: 'libration', u0, period: 4 * ellipticK(m, mc) / w0, amplitude: 2 * Math.asin(kappa),
-        x: t => base + 2 * L * Math.asin(kappa * fn(w0 * t + u0).sn),
-        v: t => 2 * L * w0 * kappa * fn(w0 * t + u0).cn,
+        x: t => base + 2 * Math.asin(kappa * fn(w0 * t + u0).sn),
+        v: t => 2 * w0 * kappa * fn(w0 * t + u0).cn,
       });
     }
     const mr = 1 / m, mrc = -mc / m;                           // parameter 1/kappa^2 and its complement
     const fn = jacobi(mr, mrc), u0 = ellipticF(theta0 / 2, mr, mrc);
     return Object.assign(out, {
       motion: 'rotation', u0, period: 2 * ellipticK(mr, mrc) / (kappa * w0), amplitude: null,
-      x: t => base + 2 * L * fn(sign * kappa * w0 * t + u0).am,
-      v: t => 2 * L * w0 * kappa * sign * fn(sign * kappa * w0 * t + u0).dn,
+      x: t => base + 2 * fn(sign * kappa * w0 * t + u0).am,
+      v: t => 2 * w0 * kappa * sign * fn(sign * kappa * w0 * t + u0).dn,
     });
   }
 
   /** True for a mass placed at rest exactly on an equilibrium point, with no external force. */
   function atRest(P, x0, p0) {
     if (p0 !== 0 || P.F0 !== 0) return false;
-    const scale = isPendulum(P) ? P.M * P.g : P.k * Math.abs(x0);
+    const scale = isPendulum(P) ? P.M * P.g * P.L : P.k * Math.abs(x0);
     return Math.abs(force(P, x0)) <= 1e-12 * scale;
   }
 
@@ -384,7 +404,7 @@
    *   {kind: 'linear', ...}     the linear oscillator (see linearExact)
    *   {kind: 'pendulum', ...}   the pendulum without friction or forcing (see pendulumExact)
    *   {kind: 'rest', stable}    a mass at rest on an equilibrium point of a nonlinear system: it stays there
-   * Every kind has x(t) and v(t).
+   * Every kind has x(t) and v(t) = x'(t)  (the angle and the angular velocity, for the pendulum).
    */
   function analytic(P, x0, p0) {
     if (derived(P).harmonic) return linearExact(P, x0, p0);
@@ -399,7 +419,9 @@
    * Numerical solution from t = 0 to T, starting at (x0, p0), by the classical fourth-order Runge-Kutta method
    * applied to the first-order system
    *
-   *     x' = p / M ,      p' = -b p / M - dV/dx + F0 cos(w t) .
+   *     x' = p / I ,      p' = -dV/dx - (b/M) p + G cos(w t) ,
+   *
+   * with I = inertia(P) and G = drive(P): see the head of the file.
    *
    * dtOut is the spacing of the stored samples and `substeps` the number of Runge-Kutta steps between two of
    * them: the step is h = dtOut / substeps, 1 ms with the defaults.
@@ -414,24 +436,25 @@
     const substeps = (options && options.substeps) || 5;
     const nMax = Math.round(T / dtOut) + 1;
     const h = dtOut / substeps, half = h / 2;
-    const { M, k, l3, l4, F0, w, L } = P, weight = M * P.g, friction = P.b / M, forced = F0 !== 0;
-    const conservative = isPendulum(P) ? x => -weight * Math.sin(x / L) : x => -x * (k + x * (l3 + x * l4));
+    const { k, l3, l4, w } = P, I = inertia(P), G = drive(P);
+    const torque = P.M * P.g * P.L, friction = P.b / P.M, forced = G !== 0;
+    const conservative = isPendulum(P) ? x => -torque * Math.sin(x) : x => -x * (k + x * (l3 + x * l4));
     const bounded = confining(P);
 
     const t = new Float64Array(nMax), xs = new Float64Array(nMax), ps = new Float64Array(nMax);
     let x = x0, p = p0, n = 1, escaped = false, failed = false;
-    let f0 = F0;                            // external force at the start of the step: F0 cos(0)
+    let f0 = G;                             // external force at the start of the step: G cos(0)
     xs[0] = x; ps[0] = p;
     for (let i = 1; i < nMax; i++) {
       for (let s = 0; s < substeps; s++) {
         // The four stages: at the start of the step, twice at its middle, and at its end.  The external force
         // at the end of one step is reused at the start of the next.
         const ts = ((i - 1) * substeps + s) * h;
-        const fm = forced ? F0 * Math.cos(w * (ts + half)) : 0, f1 = forced ? F0 * Math.cos(w * (ts + h)) : 0;
-        const k1x = p / M, k1p = conservative(x) - friction * p + f0;
-        const p2 = p + half * k1p, k2x = p2 / M, k2p = conservative(x + half * k1x) - friction * p2 + fm;
-        const p3 = p + half * k2p, k3x = p3 / M, k3p = conservative(x + half * k2x) - friction * p3 + fm;
-        const p4 = p + h * k3p, k4x = p4 / M, k4p = conservative(x + h * k3x) - friction * p4 + f1;
+        const fm = forced ? G * Math.cos(w * (ts + half)) : 0, f1 = forced ? G * Math.cos(w * (ts + h)) : 0;
+        const k1x = p / I, k1p = conservative(x) - friction * p + f0;
+        const p2 = p + half * k1p, k2x = p2 / I, k2p = conservative(x + half * k1x) - friction * p2 + fm;
+        const p3 = p + half * k2p, k3x = p3 / I, k3p = conservative(x + half * k2x) - friction * p3 + fm;
+        const p4 = p + h * k3p, k4x = p4 / I, k4p = conservative(x + h * k3x) - friction * p4 + f1;
         x += h / 6 * (k1x + 2 * k2x + 2 * k3x + k4x);
         p += h / 6 * (k1p + 2 * k2p + 2 * k3p + k4p);
         f0 = f1;
@@ -444,9 +467,9 @@
   }
 
   /**
-   * The fastest rate (1/s) in a numerical solution: the local angular frequency sqrt(|V''(x)| / M), the
+   * The fastest rate (1/s) in a numerical solution: the local angular frequency sqrt(|V''(x)| / I), the
    * friction rate b/M, the forcing frequency and, for the pendulum, the angular velocity (the rate at which
-   * the force sin(x/L) varies in a fast rotation).  Samples of a mass already running away, beyond twice the
+   * the torque sin(theta) varies in a fast rotation).  Samples of a mass already running away, beyond twice the
    * farthest barrier, are left out.
    */
   function fastestRate(P, sol) {
@@ -458,7 +481,7 @@
       bend = Math.max(bend, Math.abs(curvature(P, sol.x[i])));
       if (pendulum) speed = Math.max(speed, Math.abs(sol.p[i]));
     }
-    return Math.max(Math.sqrt(bend / P.M), P.b / P.M, P.w, pendulum ? speed / (P.M * P.L) : 0);
+    return Math.max(Math.sqrt(bend / inertia(P)), P.b / P.M, P.w, pendulum ? speed / inertia(P) : 0);
   }
 
   /**
@@ -479,7 +502,8 @@
     if (exact) {
       const n = Math.round(T / dtOut) + 1;
       const t = new Float64Array(n), x = new Float64Array(n), p = new Float64Array(n);
-      for (let i = 0; i < n; i++) { t[i] = i * dtOut; x[i] = exact.x(t[i]); p[i] = P.M * exact.v(t[i]); }
+      const I = inertia(P);
+      for (let i = 0; i < n; i++) { t[i] = i * dtOut; x[i] = exact.x(t[i]); p[i] = I * exact.v(t[i]); }
       return { t, x, p, n, dt: dtOut, escaped: false, failed: false, exact, step: null };
     }
     const most = Math.max(5, Math.min(MAX_SUBSTEPS, Math.floor(MAX_STEPS / Math.round(T / dtOut))));
@@ -500,7 +524,7 @@
   function energies(P, sol) {
     const K = new Float64Array(sol.n), U = new Float64Array(sol.n), E = new Float64Array(sol.n);
     for (let i = 0; i < sol.n; i++) {
-      K[i] = sol.p[i] * sol.p[i] / (2 * P.M);
+      K[i] = sol.p[i] * sol.p[i] / (2 * inertia(P));
       U[i] = potential(P, sol.x[i]);
       E[i] = K[i] + U[i];
     }
@@ -508,7 +532,7 @@
   }
 
   return {
-    derived, stiffness, harmonicApproximation, potential, force, curvature, energy, equilibria, confining,
+    inertia, drive, derived, stiffness, harmonicApproximation, potential, force, curvature, energy, equilibria, confining,
     analytic, steadyState, integrate, solve, energies, jacobi, ellipticK, ellipticF, carlsonRF, ESCAPE_X,
   };
 });

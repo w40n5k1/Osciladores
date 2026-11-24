@@ -20,8 +20,20 @@
   const F = window.Fisica, Fm = window.Formulas, G = window.Graficos, C = window.Controles;
   const $ = id => document.getElementById(id);
 
-  /** Largest |x0| (m) and |p0| (kg m/s) the controls accept, whatever the range of the diagram. */
+  /** Largest |x0| (m) and |p0| (kg m/s, or kg m^2/s) the controls accept, whatever the range of the diagram. */
   const X_MAX = 100, P_MAX = 1000;
+  /**
+   * How each system writes its coordinate and momentum.  The oscillator has the position x and the momentum
+   * p = M x'; the pendulum, the angle theta and the angular momentum p_theta = M L^2 theta'.
+   *   ic        ids of the controls of the initial coordinate and momentum
+   *   q, p      axis labels of the plots: [symbol, unit, subscript]
+   *   qUnit, V  unit of the coordinate; label of the potential in the inset
+   *   qText, pHtml, pUnit   for the readout under the time bar and the spoken names of the range sliders
+   */
+  const NAMES = {
+    oscillator: { ic: ['x0', 'p0'], q: ['x', ' (m)'], p: ['p', ' (kg·m/s)'], qUnit: 'm', V: 'V(x)', qText: 'x', pHtml: 'p', pText: 'p', pUnit: 'kg·m/s' },
+    pendulum: { ic: ['th0', 'pth0'], q: ['θ', ' (rad)'], p: ['p', ' (kg·m²/s)', 'θ'], qUnit: 'rad', V: 'V(θ)', qText: 'θ', pHtml: 'p<sub>θ</sub>', pText: 'pθ', pUnit: 'kg·m²/s' },
+  };
   /** Smallest half-width of the phase diagram, in m and in kg m/s: where its two thin sliders start. */
   const SMALLEST = 0.01;
   /** The arrows of the phase diagram show the displacement during ARROW_TIME / w0 seconds. */
@@ -55,15 +67,20 @@
     ], caption: [['res', 'ressonância: potência absorvida acima de metade da máxima (largura 2γ)',
       'A potência média absorvida no regime estacionário é máxima em ω₀ e cai à metade nas bordas da faixa.']] },
     { title: 'Condições iniciais', controls: [
-      { id: 'x0', symbol: 'x_0', name: 'posição', unit: 'm', min: -1.2, max: 1.2, step: 0.01, value: 1, decimals: 2 },
-      { id: 'p0', symbol: 'p_0', name: 'momento', unit: 'kg·m/s', min: -2, max: 2, step: 0.02, value: 0, decimals: 2 },
+      { id: 'x0', only: 'oscillator', symbol: 'x_0', name: 'posição', unit: 'm', min: -1.2, max: 1.2, step: 0.01, value: 1, decimals: 2 },
+      { id: 'p0', only: 'oscillator', symbol: 'p_0', name: 'momento', unit: 'kg·m/s', min: -2, max: 2, step: 0.02, value: 0, decimals: 2 },
+      { id: 'th0', only: 'pendulum', symbol: '\\theta_0', name: 'ângulo', unit: 'rad', min: -Math.PI, max: Math.PI, step: 0.02, value: 1, decimals: 2 },
+      { id: 'pth0', only: 'pendulum', symbol: 'p_{\\theta 0}', name: 'momento angular', unit: 'kg·m²/s', min: -8, max: 8, step: 0.05, value: 0, decimals: 2 },
     ] },
     { title: 'Tempo', controls: [
       { id: 'T', symbol: 'T', name: 'duração', unit: 's', min: 10, max: 120, step: 5, value: 30, decimals: 0 },
     ] },
   ];
 
-  /** Each example lists only what differs from the first one.  The last one is quoted in the derivations. */
+  /**
+   * Each example lists only what differs from the first one.  x0 and p0 are the initial coordinate and momentum:
+   * for the pendulum, the angle (rad) and the angular momentum (kg m^2/s).  The last one is quoted in the derivations.
+   */
   const ROOT_G = Math.sqrt(9.81);
   const EXAMPLES = [
     { name: 'Subamortecido', system: 'oscillator', M: 1, k: 4, L: 1, g: 9.81, b: 0.4, l3: 0, l4: 0, F0: 0, w: 2, x0: 1, p0: 0, T: 30 },
@@ -83,11 +100,14 @@
     { name: 'Pêndulo: sobre a separatriz', system: 'pendulum', b: 0, x0: 0, p0: 2 * ROOT_G, T: 10 },
     { name: 'Pêndulo: rotação', system: 'pendulum', b: 0, x0: 0, p0: 7, T: 10 },
     { name: 'Pêndulo amortecido, lançado em rotação', system: 'pendulum', b: 0.3, x0: 0, p0: 14, T: 30 },
-    // Baker & Gollub: theta'' + theta'/q + sin(theta) = a cos(w_D tau), with q = 2, a = 1.5, w_D = 2/3, tau = w0 t.
+    // Baker & Gollub: theta'' + theta'/q + sin(theta) = a cos(w_D tau), with q = 2, a = 1.5, w_D = 2/3, tau = w0 t:
+    // b / M = w0 / q,  F0 = a M g,  w = w_D w0  (L = 1 m).
     { name: 'Pêndulo amortecido e forçado: caos', system: 'pendulum', M: 0.3, b: 0.3 * ROOT_G / 2, F0: 1.5 * 0.3 * 9.81, w: 2 * ROOT_G / 3, x0: 0, T: 120 },
   ];
 
   const controls = {};                      // id -> Controles.Control
+  /** The controls of the initial coordinate and momentum of the system in use: [coordinate, momentum]. */
+  const initial = () => NAMES[state.system].ic.map(id => controls[id]);
   const ladders = {};                       // x, p -> Controles.Ladder: ranges of the phase diagram
   const fieldsets = [];                     // {group, element}
   const state = {
@@ -120,15 +140,15 @@
    * leaving for good), and p as far as the trajectory reaches inside that range.
    * A mass at rest gives no scale (in p; nor in x, if it rests at the origin): that range stays as it was in
    * `before`, the ranges {xr, pr} of the diagram until now (null if there were none).
-   * Pendulum: one whole turn in x, and in p enough for the trajectory and for the separatrix, whose top is at
-   * p = 2 M sqrt(g L), so that the whole portrait is always in view.
+   * Pendulum: one whole turn in theta, and in p enough for the trajectory and for the separatrix, whose top
+   * is at p_theta = 2 M L^2 sqrt(g / L), so that the whole portrait is always in view.
    */
   function fitted(m, reach, before) {
     const sol = m.sol, P = m.P;
     const largest = (values, count) => { let most = 0; for (let i = 0; i < count; i++) most = Math.max(most, Math.abs(values[i])); return most; };
     const around = (most, kept) => (most > 0 ? G.niceCeil(Math.max(1.04 * most, SMALLEST)) : kept);
     if (P.system === 'pendulum') {
-      return { xr: Math.PI * P.L, pr: G.niceCeil(1.04 * Math.max(largest(sol.p, sol.n), 2 * P.M * Math.sqrt(P.g * P.L))) };
+      return { xr: Math.PI, pr: G.niceCeil(1.04 * Math.max(largest(sol.p, sol.n), 2 * F.inertia(P) * Math.sqrt(P.g / P.L))) };
     }
     if (sol.escaped) {
       const farthest = largest(sol.x, lastInside(sol, reach) + 1);        // beyond `reach` only on an earlier excursion
@@ -154,11 +174,12 @@
   function compute() {
     const P = { system: state.system }, pendulum = state.system === 'pendulum';
     for (const id of ['M', 'k', 'L', 'g', 'b', 'l3', 'l4', 'F0', 'w']) P[id] = controls[id].value;
-    const x0 = controls.x0.value, p0 = controls.p0.value, T = controls.T.value;
+    const x0 = initial()[0].value, p0 = initial()[1].value, T = controls.T.value;
     const sol = F.solve(P, x0, p0, T), D = F.derived(P);
     const before = model && model.P.system === P.system ? model.view : null;
     model = {
       P, D, x0, p0, T, sol,
+      names: NAMES[state.system],
       en: F.energies(P, sol),
       an: sol.exact,
       approx: D.harmonic ? null : F.analytic(F.harmonicApproximation(P), x0, p0),
@@ -170,11 +191,11 @@
       index: 0,
     };
 
-    // Positions as drawn in the phase diagram: for the pendulum, reduced to one turn.
+    // Coordinate as drawn in the phase diagram: for the pendulum, the angle reduced to one turn, (-pi, pi].
     model.wrap = pendulum;
     model.xw = sol.x;
     if (pendulum) {
-      const turn = 2 * Math.PI * P.L;
+      const turn = 2 * Math.PI;
       model.xw = new Float64Array(sol.n);
       for (let i = 0; i < sol.n; i++) model.xw[i] = Math.abs(sol.x[i]) <= turn / 2 ? sol.x[i] : sol.x[i] - turn * Math.round(sol.x[i] / turn);
     }
@@ -194,7 +215,7 @@
     let view;
     if (state.frozen) view = { xr: state.frozen.xr, pr: state.frozen.pr };
     else if (state.fit) view = fitted(model, reach, before);
-    else view = { xr: pendulum ? Math.min(ladders.x.value, Math.PI * P.L) : ladders.x.value, pr: ladders.p.value };
+    else view = { xr: pendulum ? Math.min(ladders.x.value, Math.PI) : ladders.x.value, pr: ladders.p.value };
     model.view = view;
 
     // An escaping mass is shown until it leaves the diagram for good (and at least up to `reach`): the three
@@ -219,19 +240,19 @@
 
   /**
    * After a change of the model: the thin sliders show the ranges of the diagram when these are fitted, and
-   * the controls of x0 and p0 take the ranges of the diagram, so that the initial condition can be anywhere
+   * the controls of the initial coordinate and momentum take the ranges of the diagram, so that the initial condition can be anywhere
    * in it (and stays in range if the diagram is made smaller than it).  Nothing moves while a slider or the
    * initial condition is being dragged.  Returns true if a value had to be changed to fit its range.
    */
   function syncRanges() {
-    const v = model.view, pendulum = state.system === 'pendulum';
+    const v = model.view, pendulum = state.system === 'pendulum', [coordinate, momentum] = initial();
     if (state.frozen) return false;
     if (state.fit) { ladders.x.show(v.xr); ladders.p.show(v.pr); }
-    if (controls.x0.dragging || controls.p0.dragging) return false;
+    if (coordinate.dragging || momentum.dragging) return false;
     const half = (ofView, value, cap) => Math.min(cap, Math.max(ofView, value === 0 ? 0 : G.niceCeil(Math.abs(value))));
-    setHalfRange(controls.x0, half(v.xr, model.x0, pendulum ? Math.PI * model.P.L : X_MAX));
-    setHalfRange(controls.p0, half(v.pr, model.p0, P_MAX));
-    return controls.x0.value !== model.x0 || controls.p0.value !== model.p0;
+    setHalfRange(coordinate, half(v.xr, model.x0, pendulum ? Math.PI : X_MAX));
+    setHalfRange(momentum, half(v.pr, model.p0, P_MAX));
+    return coordinate.value !== model.x0 || momentum.value !== model.p0;
   }
 
   // ------------------------------------------------------------------------------------------ bars
@@ -243,7 +264,7 @@
    *   M, k, L, g   the same boundary seen from each parameter, with a mark at its critical value:
    *                the system is overdamped for M below it, k or g below it, L above it
    *   g            marks at the gravity of the Moon, the Earth and Jupiter
-   *   F0, x0, p0   mark at zero
+   *   F0, and the initial coordinate and momentum   mark at zero
    *   w            marks at the natural frequency w0 and at the frequency of largest amplitude w_R;
    *                band where the absorbed power exceeds half its maximum: sqrt(w0^2 + gamma^2) -+ gamma
    *   l3, l4       where the potential has two wells (bistable), and where it does not confine (unstable)
@@ -286,8 +307,7 @@
     if (P.l3 !== 0) l4.push({ from: 0, to: P.l3 * P.l3 / (4 * P.k), kind: 'pocos' });
     c.l4.decorate(l4, [zero]);
 
-    c.x0.decorate([], [zero]);
-    c.p0.decorate([], [zero]);
+    for (const control of initial()) control.decorate([], [zero]);
   }
 
   // ------------------------------------------------------------------------------------------ formulas
@@ -353,12 +373,11 @@
     }
   }
 
-  /** Values under the time cursor. */
+  /** Values under the time cursor: coordinate, momentum and energy. */
   function readout() {
-    const i = model.index, s = model.sol;
-    const items = ['x = ' + Fm.text(s.x[i]) + ' m', 'p = ' + Fm.text(s.p[i]) + ' kg·m/s', 'E = ' + Fm.text(model.en.E[i]) + ' J'];
-    if (model.P.system === 'pendulum') items.splice(1, 0, 'θ = x/L = ' + Fm.text(s.x[i] / model.P.L) + ' rad');
-    const html = items.map(item => '<span>' + item + '</span>').join('');
+    const i = model.index, sol = model.sol, names = model.names;
+    const html = [names.qText + ' = ' + Fm.text(sol.x[i]) + ' ' + names.qUnit, names.pHtml + ' = ' + Fm.text(sol.p[i]) + ' ' + names.pUnit,
+      'E = ' + Fm.text(model.en.E[i]) + ' J'].map(item => '<span>' + item + '</span>').join('');
     if (readout.shown !== html) { $('leitura').innerHTML = html; readout.shown = html; }
   }
 
@@ -410,10 +429,10 @@
   function dragInitialCondition(phase) {
     const canvas = phase.area.canvas;
     const place = event => {
-      const q = phase.area.at(event);
+      const q = phase.area.at(event), [coordinate, momentum] = initial();
       const round = (v, spec) => Math.round(v / spec.step) * spec.step;
-      controls.x0.set(round(q.x, controls.x0.spec));
-      controls.p0.set(round(q.y, controls.p0.spec));
+      coordinate.set(round(q.x, coordinate.spec));
+      momentum.set(round(q.y, momentum.spec));
       stale = true;
     };
     canvas.addEventListener('pointerdown', event => {
@@ -445,26 +464,34 @@
     canvas.addEventListener('pointercancel', release);
   }
 
-  /** Switches between the oscillator and the pendulum: shows the controls of the system and restarts. */
+  /**
+   * Switches between the oscillator and the pendulum: shows the controls of the system, rewrites the texts of
+   * the page that name the coordinate and the momentum (elements with data-oscillator and data-pendulum: plain
+   * text, or LaTeX if the element has the class "m"), and restarts.
+   */
   function setSystem(system) {
     state.system = system;
     for (const button of document.querySelectorAll('.alternancia button')) button.setAttribute('aria-checked', button.dataset.sistema === system);
     for (const id in controls) controls[id].el.hidden = !!controls[id].spec.only && controls[id].spec.only !== system;
     for (const entry of fieldsets) entry.element.hidden = !!entry.group.only && entry.group.only !== system;
-    if (system === 'pendulum') {            // the position is kept within one turn
-      const limit = Math.PI * controls.L.value;
-      controls.x0.set(Math.max(-limit, Math.min(limit, controls.x0.value)));
+    for (const element of document.querySelectorAll('[data-oscillator]')) {
+      if (element.classList.contains('m')) C.math(element, element.dataset[system]);
+      else element.textContent = element.dataset[system];
     }
+    for (const ladder of [ladders.x, ladders.p]) ladder.place(ladder.index);      // their spoken text names the coordinate
     state.t = 0; stale = true;
     setPlaying(true);
   }
 
+  /** Sets every control from an example; its x0 and p0 go to the initial conditions of the example's system. */
   function applyExample(index) {
-    const values = Object.assign({}, EXAMPLES[0], EXAMPLES[index]);
-    for (const id in controls) {
-      if (id === 'x0' || id === 'p0') setHalfRange(controls[id], Math.max(controls[id].spec.max, G.niceCeil(Math.abs(values[id]) || 1)));
-      controls[id].set(values[id]);
-    }
+    const values = Object.assign({}, EXAMPLES[0], EXAMPLES[index]), ic = NAMES[values.system].ic;
+    for (const id in controls) if (id in values && id !== 'x0' && id !== 'p0') controls[id].set(values[id]);
+    [values.x0, values.p0].forEach((value, i) => {
+      const control = controls[ic[i]];
+      setHalfRange(control, Math.max(control.spec.max, G.niceCeil(Math.abs(value) || 1)));
+      control.set(value);
+    });
     state.fit = true; $('ajustar').checked = true;
     setSystem(values.system);
   }
@@ -506,25 +533,26 @@
 
   function start() {
     for (const group of GROUPS) buildGroup(group, $('controles'));
-    for (const element of document.querySelectorAll('.m')) C.math(element, element.textContent, element.tagName === 'DIV');
+    for (const element of document.querySelectorAll('.m:not([data-oscillator])')) C.math(element, element.textContent, element.tagName === 'DIV');
 
     const phase = new G.Phase($('fase')), energy = new G.Energy($('energia')), solution = new G.Solution($('solucao'));
     plots = [phase, energy, solution];
     dragInitialCondition(phase);
     dragTime(energy);
     dragTime(solution);
-    // Releasing x0 or p0 lets their ranges follow the diagram again.
-    for (const id of ['x0', 'p0']) controls[id].input.addEventListener('change', () => { stale = true; });
+    // Releasing an initial condition lets its range follow the diagram again.
+    for (const id of NAMES.oscillator.ic.concat(NAMES.pendulum.ic)) controls[id].input.addEventListener('change', () => { stale = true; });
 
     // The thin sliders of the phase diagram, lined up with its plot area.  Moving one sets that range by hand.
     for (const side of ['l', 'r', 't', 'b']) $('painelFase').style.setProperty('--margem-' + side, phase.area.m[side] + 'px');
     const byHand = () => { state.fit = false; $('ajustar').checked = false; stale = true; };
     const plain = v => String(v).replace('.', ',');
     const exponent = powerOfTen => Math.round(Math.log10(powerOfTen));
-    ladders.x = new C.Ladder($('escalaX'), { values: G.roundNumbers(exponent(SMALLEST), exponent(X_MAX)), label: 'Intervalo de x no diagrama',
-      format: v => 'x de −' + plain(v) + ' a ' + plain(v) + ' m', onChange: byHand });
-    ladders.p = new C.Ladder($('escalaP'), { vertical: true, values: G.roundNumbers(exponent(SMALLEST), exponent(P_MAX)), label: 'Intervalo de p no diagrama',
-      format: v => 'p de −' + plain(v) + ' a ' + plain(v) + ' kg·m/s', onChange: byHand });
+    const names = () => NAMES[state.system];
+    ladders.x = new C.Ladder($('escalaX'), { values: G.roundNumbers(exponent(SMALLEST), exponent(X_MAX)), label: 'Intervalo horizontal do diagrama',
+      format: v => { const a = state.system === 'pendulum' && v > Math.PI ? 'π' : plain(v); return names().qText + ' de −' + a + ' a ' + a + ' ' + names().qUnit; }, onChange: byHand });   // the angle goes up to pi at most
+    ladders.p = new C.Ladder($('escalaP'), { vertical: true, values: G.roundNumbers(exponent(SMALLEST), exponent(P_MAX)), label: 'Intervalo vertical do diagrama',
+      format: v => names().pText + ' de −' + plain(v) + ' a ' + plain(v) + ' ' + names().pUnit, onChange: byHand });
     $('ajustar').addEventListener('change', event => { state.fit = event.target.checked; stale = true; });
 
     // Time bar: dragging it moves the cursor; clicking its zero restarts the motion.

@@ -48,12 +48,12 @@
         <li id="legInstavel"><i class="ponto vazio"></i>instável</li>
       </ul>
       <ul class="legenda">
-        <li><svg class="seta tinta-2" viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><path d="M1 5h15" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M21 5l-6.5-3v6z" fill="currentColor"/></svg><span>velocidade, <span class="m">\dot x</span></span></li>
-        <li><svg class="seta tinta-2" viewBox="0 0 10 18" width="10" height="18" aria-hidden="true"><path d="M5 17V6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5 1l-3 6.5h6z" fill="currentColor"/></svg><span>força resultante, <span class="m">\dot p</span></span></li>
-        <li><svg class="seta tinta" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M2 16L12.5 5.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M17 1l-7 2.6 4.4 4.4z" fill="currentColor"/></svg><span>vetor tangente, <span class="m">(\dot x,\ \dot p)</span></span></li>
-        <li id="legForca"><svg class="seta forca" viewBox="0 0 12 18" width="12" height="18" aria-hidden="true"><path d="M6 17V8" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M6 0.5l-5 8.5h10z" fill="currentColor"/></svg><span>força externa, <span class="m">F_0\cos(\omega t)</span></span></li>
+        <li><svg class="seta tinta-2" viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><path d="M1 5h15" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M21 5l-6.5-3v6z" fill="currentColor"/></svg><span><span data-oscillator="velocidade" data-pendulum="velocidade angular"></span>, <span class="m" data-oscillator="\dot x" data-pendulum="\dot\theta"></span></span></li>
+        <li><svg class="seta tinta-2" viewBox="0 0 10 18" width="10" height="18" aria-hidden="true"><path d="M5 17V6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5 1l-3 6.5h6z" fill="currentColor"/></svg><span><span data-oscillator="força resultante" data-pendulum="torque resultante"></span>, <span class="m" data-oscillator="\dot p" data-pendulum="\dot p_\theta"></span></span></li>
+        <li><svg class="seta tinta" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M2 16L12.5 5.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M17 1l-7 2.6 4.4 4.4z" fill="currentColor"/></svg><span>vetor tangente, <span class="m" data-oscillator="(\dot x,\ \dot p)" data-pendulum="(\dot\theta,\ \dot p_\theta)"></span></span></li>
+        <li id="legForca"><svg class="seta forca" viewBox="0 0 12 18" width="12" height="18" aria-hidden="true"><path d="M6 17V8" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M6 0.5l-5 8.5h10z" fill="currentColor"/></svg><span><span data-oscillator="força externa" data-pendulum="torque externo"></span>, <span class="m" data-oscillator="F_0\cos(\omega t)" data-pendulum="F_0L\cos(\omega t)"></span></span></li>
       </ul>
-      <p class="dica">Arraste no diagrama para escolher a condição inicial (<span class="mat">x</span><sub>0</sub>, <span class="mat">p</span><sub>0</sub>); ao soltar, o movimento recomeça. As setas mostram quanto <span class="mat">x</span> e <span class="mat">p</span> variariam em <span id="escalaSetas"></span>, mantidas as taxas do instante. As barras finas, embaixo e à esquerda, definem os intervalos de <span class="mat">x</span> e de <span class="mat">p</span>.</p>
+      <p class="dica">Arraste no diagrama para escolher a condição inicial (<span class="m" data-oscillator="x_0,\ p_0" data-pendulum="\theta_0,\ p_{\theta 0}"></span>); ao soltar, o movimento recomeça. As setas mostram quanto <span class="m" data-oscillator="x" data-pendulum="\theta"></span> e <span class="m" data-oscillator="p" data-pendulum="p_\theta"></span> variariam em <span id="escalaSetas"></span>, mantidas as taxas do instante. As barras finas, embaixo e à esquerda, definem os intervalos de <span class="m" data-oscillator="x" data-pendulum="\theta"></span> e de <span class="m" data-oscillator="p" data-pendulum="p_\theta"></span>.</p>
     </section>
 
     <aside class="painel energia" aria-label="Energia">
@@ -61,10 +61,10 @@
       <canvas id="energia"></canvas>
       <ul class="legenda">
         <li><i class="linha grossa serie-1"></i>total</li>
-        <li><i class="linha serie-2"></i><span>cinética, <span class="mat">p</span>²/2<span class="mat">M</span></span></li>
-        <li><i class="linha serie-3"></i><span>potencial, <span class="mat">V</span>(<span class="mat">x</span>)</span></li>
+        <li><i class="linha serie-2"></i><span>cinética, <span class="m" data-oscillator="p^2/2M" data-pendulum="p_\theta^2/2ML^2"></span></span></li>
+        <li><i class="linha serie-3"></i><span>potencial, <span class="m" data-oscillator="V(x)" data-pendulum="V(\theta)"></span></span></li>
       </ul>
-      <p class="dica">No canto, o potencial no intervalo de <span class="mat">x</span> do diagrama de fase: o ponto marca a posição atual; a linha horizontal, a energia total; o segmento vertical entre os dois, a energia cinética.</p>
+      <p class="dica">No canto, o potencial no intervalo de <span class="m" data-oscillator="x" data-pendulum="\theta"></span> do diagrama de fase: o ponto marca a posição atual; a linha horizontal, a energia total; o segmento vertical entre os dois, a energia cinética.</p>
       <div class="potencial" id="potencial"></div>
       <p class="dica" id="aviso" hidden></p>
     </aside>
@@ -103,7 +103,7 @@
       <p class="dica" id="solNota"></p>
     </div>
     <div class="grafico">
-      <h2><span class="mat">x</span>(<span class="mat">t</span>)</h2>
+      <h2><span class="m" data-oscillator="x(t)" data-pendulum="\theta(t)"></span></h2>
       <canvas id="solucao"></canvas>
       <ul class="legenda">
         <li><i class="linha grossa serie-1"></i><span id="nomeCurva">analítica</span></li>
@@ -195,26 +195,30 @@
       <p>o termo quártico com <span class="m">\lambda_4 \gt 0</span> aumenta a frequência (mola que endurece), e o termo cúbico sempre a diminui.</p>
 
       <h3>7. Pêndulo</h3>
-      <p>Uma massa <span class="m">M</span> na ponta de uma haste rígida de comprimento <span class="m">L</span>, sem massa, no campo gravitacional <span class="m">g</span>. Seja <span class="m">x</span> o comprimento de arco ao longo da trajetória circular, medido a partir do ponto mais baixo, de modo que o ângulo com a vertical é <span class="m">\theta = x/L</span>. A componente tangencial da segunda lei, com o atrito e a força externa também tangenciais, é</p>
-      <div class="m">M\ddot x = -Mg\operatorname{sen}\!\left(\frac{x}{L}\right) - b\,\dot x + F_0\cos(\omega t), \qquad V(x) = MgL\left[1 - \cos\!\left(\frac{x}{L}\right)\right].</div>
-      <p>O momento conjugado a <span class="m">x</span> é <span class="m">p = M\dot x</span>, e o que foi dito na seção 1 continua valendo. No diagrama de fase, <span class="m">x</span> é reduzido a uma volta, <span class="m">-\pi L \lt x \le \pi L</span>: as duas bordas são a mesma posição, a invertida.</p>
-      <p><b>Pequenas oscilações.</b> Para <span class="m">|x| \ll L</span>, <span class="m">\operatorname{sen}(x/L) \simeq x/L</span>, e o pêndulo é um oscilador harmônico com <span class="m">k = Mg/L</span>, ou seja, <span class="m">\omega_0 = \sqrt{g/L}</span>, independente da massa: valem as seções 2 a 5. É a curva tracejada «aproximação harmônica», que pode ser ligada no gráfico de <span class="m">x(t)</span>.</p>
-      <p><b>Solução exata sem atrito nem força externa.</b> A energia <span class="m">E = \tfrac12M\dot x^2 + MgL\,(1-\cos\theta)</span> é constante. Com <span class="m">1 - \cos\theta = 2\operatorname{sen}^2(\theta/2)</span> e definindo <span class="m">\kappa^2 = E/(2MgL)</span>,</p>
+      <p>Uma massa <span class="m">M</span> na ponta de uma haste rígida de comprimento <span class="m">L</span>, sem massa, no campo gravitacional <span class="m">g</span>. A coordenada é o ângulo <span class="m">\theta</span> com a vertical, medido a partir do ponto mais baixo. O atrito <span class="m">-bv</span> e a força externa <span class="m">F_0\cos(\omega t)</span> atuam sobre a massa ao longo da trajetória circular, em que <span class="m">v = L\dot\theta</span>. Os torques em relação ao ponto de suspensão dão</p>
+      <div class="m">ML^2\,\ddot\theta = -MgL\operatorname{sen}\theta - bL^2\,\dot\theta + F_0L\cos(\omega t), \qquad V(\theta) = MgL\,(1 - \cos\theta).</div>
+      <p>O momento conjugado a <span class="m">\theta</span> é o momento angular <span class="m">p_\theta = ML^2\dot\theta</span>, e as duas equações de primeira ordem são</p>
+      <div class="m">\dot\theta = \frac{p_\theta}{ML^2}, \qquad \dot p_\theta = -MgL\operatorname{sen}\theta - \frac{b}{M}\,p_\theta + F_0L\cos(\omega t).</div>
+      <p>O que foi dito na seção 1 continua valendo, com <span class="m">\theta</span> no lugar de <span class="m">x</span>, <span class="m">p_\theta</span> no lugar de <span class="m">p</span>, o momento de inércia <span class="m">ML^2</span> no lugar da massa e torques no lugar de forças: a energia é <span class="m">E = p_\theta^2/2ML^2 + V(\theta)</span>, e <span class="m">dE/dt = -b\,v^2 + F_0\cos(\omega t)\,v</span>. O vetor tangente à trajetória no espaço de fase é <span class="m">(\dot\theta, \dot p_\theta)</span>: a velocidade angular e o torque resultante. No diagrama, <span class="m">\theta</span> é reduzido a uma volta, <span class="m">-\pi \lt \theta \le \pi</span>: as duas bordas são a mesma posição, a invertida.</p>
+      <p><b>Pequenas oscilações.</b> Para <span class="m">|\theta| \ll 1</span>, <span class="m">\operatorname{sen}\theta \simeq \theta</span>, e dividindo por <span class="m">ML^2</span> obtém-se a equação do oscilador harmônico,</p>
+      <div class="m">\ddot\theta + 2\gamma\,\dot\theta + \omega_0^2\,\theta = \frac{F_0}{ML}\cos(\omega t), \qquad \omega_0 = \sqrt{g/L}, \quad \gamma = \frac{b}{2M},</div>
+      <p>com <span class="m">\omega_0</span> independente da massa: valem as seções 2 a 5 com <span class="m">\theta</span> no lugar de <span class="m">x</span> e <span class="m">F_0/ML</span> no lugar de <span class="m">f</span>. É a curva tracejada «aproximação harmônica», que pode ser ligada no gráfico de <span class="m">\theta(t)</span>.</p>
+      <p><b>Solução exata sem atrito nem força externa.</b> A energia <span class="m">E = \tfrac12ML^2\dot\theta^2 + MgL\,(1-\cos\theta)</span> é constante. Com <span class="m">1 - \cos\theta = 2\operatorname{sen}^2(\theta/2)</span> e definindo <span class="m">\kappa^2 = E/(2MgL)</span>,</p>
       <div class="m">\dot\theta^2 = 4\omega_0^2\left[\kappa^2 - \operatorname{sen}^2(\theta/2)\right].</div>
       <p><i>Oscilação</i> (<span class="m">\kappa \lt 1</span>). O pêndulo vai e volta entre <span class="m">\pm\theta_{\text{máx}}</span>, com <span class="m">\kappa = \operatorname{sen}(\theta_{\text{máx}}/2)</span>. A substituição <span class="m">\operatorname{sen}(\theta/2) = \kappa\operatorname{sen}\varphi</span> dá <span class="m">\dot\theta = 2\omega_0\kappa\cos\varphi</span> e, derivando-a, <span class="m">\dot\varphi = \omega_0\sqrt{1 - \kappa^2\operatorname{sen}^2\varphi}</span>. Logo</p>
       <div class="m">\omega_0t + u_0 = \int_0^{\varphi}\frac{d\varphi'}{\sqrt{1-\kappa^2\operatorname{sen}^2\varphi'}} \equiv F(\varphi,\kappa).</div>
       <p>A inversa dessa integral define as funções elípticas de Jacobi: <span class="m">\varphi = \operatorname{am}(u,\kappa)</span>, <span class="m">\operatorname{sn} = \operatorname{sen}\varphi</span>, <span class="m">\operatorname{cn} = \cos\varphi</span> e <span class="m">\operatorname{dn} = d\varphi/du</span>. Portanto</p>
-      <div class="m">\operatorname{sen}\frac{x}{2L} = \kappa\operatorname{sn}(\omega_0t + u_0,\ \kappa), \qquad \dot x = 2L\,\omega_0\,\kappa\operatorname{cn}(\omega_0t + u_0,\ \kappa),</div>
-      <p>com <span class="m">u_0 = F(\varphi_0,\kappa)</span>, em que <span class="m">\varphi_0</span> é fixado por <span class="m">\operatorname{sen}\varphi_0 = \operatorname{sen}(x_0/2L)/\kappa</span> e <span class="m">\cos\varphi_0 = v_0/(2L\omega_0\kappa)</span>. Em um período <span class="m">\varphi</span> aumenta de <span class="m">2\pi</span>:</p>
+      <div class="m">\operatorname{sen}\frac{\theta}{2} = \kappa\operatorname{sn}(\omega_0t + u_0,\ \kappa), \qquad \dot\theta = 2\,\omega_0\,\kappa\operatorname{cn}(\omega_0t + u_0,\ \kappa),</div>
+      <p>com <span class="m">u_0 = F(\varphi_0,\kappa)</span>, em que <span class="m">\varphi_0</span> é fixado por <span class="m">\operatorname{sen}\varphi_0 = \operatorname{sen}(\theta_0/2)/\kappa</span> e <span class="m">\cos\varphi_0 = \dot\theta_0/(2\omega_0\kappa)</span>, sendo <span class="m">\dot\theta_0 = p_{\theta 0}/ML^2</span>. Em um período <span class="m">\varphi</span> aumenta de <span class="m">2\pi</span>:</p>
       <div class="m">T = \frac{4K(\kappa)}{\omega_0}, \qquad K(\kappa) = F(\pi/2,\kappa) = \frac{\pi}{2}\left[1 + \frac{\kappa^2}{4} + \frac{9\kappa^4}{64} + \dots\right],</div>
       <p>isto é,</p>
       <div class="m">T = \frac{2\pi}{\omega_0}\left[1 + \frac{\theta_{\text{máx}}^2}{16} + \frac{11\,\theta_{\text{máx}}^4}{3072} + \dots\right].</div>
       <p>O período cresce com a amplitude; para <span class="m">\kappa \to 0</span>, <span class="m">\operatorname{sn} \to \operatorname{sen}</span> e recupera-se o oscilador harmônico.</p>
       <p><i>Rotação</i> (<span class="m">\kappa \gt 1</span>). A energia supera a da posição invertida, <span class="m">2MgL</span>, e <span class="m">\dot\theta</span> nunca se anula. Com <span class="m">\varphi = \theta/2</span>, a mesma integral aparece com módulo <span class="m">1/\kappa</span>:</p>
-      <div class="m">x(t) = 2L\operatorname{am}(\pm\kappa\,\omega_0t + u_0,\ 1/\kappa), \qquad \dot x = \pm2L\,\omega_0\,\kappa\operatorname{dn}(\pm\kappa\,\omega_0t + u_0,\ 1/\kappa), \qquad u_0 = F\!\left(\frac{x_0}{2L},\frac1\kappa\right),</div>
-      <p>com o sinal da velocidade inicial. Uma volta completa leva <span class="m">2K(1/\kappa)/(\kappa\,\omega_0)</span>.</p>
+      <div class="m">\theta(t) = 2\operatorname{am}(\pm\kappa\,\omega_0t + u_0,\ 1/\kappa), \qquad \dot\theta = \pm2\,\omega_0\,\kappa\operatorname{dn}(\pm\kappa\,\omega_0t + u_0,\ 1/\kappa), \qquad u_0 = F\!\left(\frac{\theta_0}{2},\frac1\kappa\right),</div>
+      <p>com o sinal da velocidade angular inicial. Uma volta completa leva <span class="m">2K(1/\kappa)/(\kappa\,\omega_0)</span>.</p>
       <p><i>Separatriz</i> (<span class="m">\kappa = 1</span>). Com <span class="m">E = 2MgL</span> a integral é elementar:</p>
-      <div class="m">\operatorname{sen}\frac{x}{2L} = \tanh(\pm\omega_0t + u_0), \qquad \dot x = \pm2L\,\omega_0\operatorname{sech}(\pm\omega_0t + u_0).</div>
+      <div class="m">\operatorname{sen}\frac{\theta}{2} = \tanh(\pm\omega_0t + u_0), \qquad \dot\theta = \pm2\,\omega_0\operatorname{sech}(\pm\omega_0t + u_0).</div>
       <p>O pêndulo se aproxima da posição invertida sem nunca alcançá-la; de fato, <span class="m">K(\kappa) \to \infty</span> quando <span class="m">\kappa \to 1</span>.</p>
       <p>Com atrito ou força externa não há solução fechada, e a equação é integrada numericamente. O pêndulo amortecido e forçado pode ter movimento caótico: é o último exemplo do menu.</p>
 
