@@ -1,0 +1,118 @@
+<!doctype html>
+<!-- By Bruno Mota - METAbio -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Osciladores</title>
+<meta name="description" content="Osciladores harmônicos e anarmônicos, livres e forçados: espaço de fase, energia, equação de movimento e solução.">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="cabecalho">
+  <div>
+    <h1>Osciladores harmônicos e anarmônicos</h1>
+    <p>Oscilações livres e forçadas, com amortecimento · Mecânica e Termodinâmica, IMPA Tech</p>
+  </div>
+  <label class="exemplos">Exemplos
+    <select id="exemplos" aria-label="Exemplos"></select>
+  </label>
+</header>
+
+<main>
+  <div class="topo">
+
+    <aside class="painel controles" aria-label="Parâmetros">
+      <div id="controles"></div>
+      <ul class="legenda legenda-barras" aria-label="Legenda das barras">
+        <li><i class="amostra sub"></i>subamortecido</li>
+        <li><i class="amostra super"></i>superamortecido</li>
+        <li><i class="amostra res"></i><span>ressonância, <span class="mat">ω</span><sub>0</sub> ± <span class="mat">γ</span></span></li>
+        <li><i class="amostra pocos"></i>dois poços</li>
+        <li><i class="amostra escape"></i>potencial não confinante</li>
+      </ul>
+    </aside>
+
+    <section class="painel fase" aria-label="Espaço de fase">
+      <h2>Espaço de fase</h2>
+      <canvas id="fase"></canvas>
+      <ul class="legenda">
+        <li><i class="linha serie-1"></i>trajetória</li>
+        <li><i class="linha nivel"></i>energia constante</li>
+        <li id="legSeparatriz"><i class="linha tracejada tinta-3"></i>separatriz</li>
+        <li id="legEstacionario"><i class="linha tracejada serie-3"></i>regime estacionário</li>
+        <li><i class="ponto cheio"></i>equilíbrio estável</li>
+        <li id="legInstavel"><i class="ponto vazio"></i>instável</li>
+      </ul>
+      <p class="dica">Arraste no diagrama para escolher a condição inicial (<span class="mat">x</span><sub>0</sub>, <span class="mat">p</span><sub>0</sub>).</p>
+    </section>
+
+    <aside class="painel energia" aria-label="Energia">
+      <h2>Energia</h2>
+      <canvas id="energia"></canvas>
+      <ul class="legenda">
+        <li><i class="linha grossa serie-1"></i>total</li>
+        <li><i class="linha serie-2"></i><span>cinética, <span class="mat">p</span>²/2<span class="mat">M</span></span></li>
+        <li><i class="linha serie-3"></i><span>potencial, <span class="mat">V</span>(<span class="mat">x</span>)</span></li>
+      </ul>
+      <div class="potencial" id="potencial"></div>
+      <p class="dica" id="aviso" hidden></p>
+    </aside>
+
+  </div>
+
+  <div class="painel transporte" aria-label="Tempo">
+    <button id="tocar" type="button">Pausar</button>
+    <button id="reiniciar" type="button">Reiniciar</button>
+    <input id="tempo" type="range" min="0" max="30" step="0.01" value="0" aria-label="Instante">
+    <label class="velocidade">Velocidade
+      <select id="velocidade" aria-label="Velocidade">
+        <option value="0.25">0,25×</option>
+        <option value="0.5">0,5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select>
+    </label>
+    <output id="leitura" class="leitura"></output>
+  </div>
+
+  <section class="painel solucao" aria-label="Equação de movimento e solução">
+    <div class="formulas">
+      <h2>Equação de movimento</h2>
+      <div class="formula" id="eqSimbolica"></div>
+      <div class="formula menor" id="eqNumerica"></div>
+      <h2>Solução <span class="etiqueta" id="regime"></span></h2>
+      <div class="formula" id="solFormula"></div>
+      <div class="lista" id="solDefinicoes"></div>
+      <div class="lista valores" id="solValores"></div>
+      <p class="dica" id="solNota"></p>
+    </div>
+    <div class="grafico">
+      <h2><span class="mat">x</span>(<span class="mat">t</span>)</h2>
+      <canvas id="solucao"></canvas>
+      <ul class="legenda">
+        <li><i class="linha grossa serie-1"></i>numérica</li>
+        <li id="legAnalitica"><i class="linha tracejada tinta"></i>analítica</li>
+        <li id="legTransiente"><i class="linha serie-2"></i><span id="nomeHomogenea">transiente</span></li>
+        <li id="legParticular"><i class="linha serie-3"></i><span id="nomeParticular">regime estacionário</span></li>
+        <li id="opcaoComponentes"><label><input type="checkbox" id="componentes" checked> mostrar os dois termos</label></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape">
+  <p>Bruno Mota · metaBIO, Instituto de Física, UFRJ. Unidades do SI. Integração numérica: Runge–Kutta de 4ª ordem, passo de 1 ms.</p>
+</footer>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="js/fisica.js"></script>
+<script src="js/formulas.js"></script>
+<script src="js/controles.js"></script>
+<script src="js/graficos.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

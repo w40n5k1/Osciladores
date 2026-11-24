@@ -1,0 +1,184 @@
+/* By Bruno Mota - METAbio */
+/*
+ * Style of the page.  Every color is a custom property defined at the top, once for the light theme and once
+ * for the dark one; the plots (js/graficos.js) read the same properties, so a change here reaches them too.
+ * The three series colors and their order come from a palette checked for color-vision deficiency.
+ */
+
+:root {
+  --fundo: #f4f3ef;        /* page */
+  --painel: #fcfcfb;       /* panels and plot surface */
+  --tinta: #0b0b0b;        /* text */
+  --tinta-2: #52514e;      /* secondary text, axis labels */
+  --tinta-3: #8a8983;      /* separatrix, hints */
+  --borda: #dcdad4;
+  --grade: #ecebe6;        /* grid lines */
+  --eixo: #b9b7b0;         /* plot frame and zero lines */
+  --nivel: #cfcdc6;        /* curves of constant energy */
+  --trilho: #e2e0da;       /* slider bar */
+  --serie-1: #2a78d6;      /* trajectory, total energy; underdamped */
+  --serie-2: #eb6834;      /* kinetic energy, transient; overdamped */
+  --serie-3: #1baf7a;      /* potential energy, steady state; resonance */
+  --pocos: #eda100;        /* potential with two wells */
+  --escape: #e34948;       /* potential that does not confine */
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fundo: #121211; --painel: #1a1a19; --tinta: #f0efec; --tinta-2: #c3c2b7; --tinta-3: #8b8a82;
+    --borda: #34332f; --grade: #262624; --eixo: #55544e; --nivel: #403f3a; --trilho: #34332f;
+    --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --pocos: #c98500; --escape: #e66767;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --fundo: #121211; --painel: #1a1a19; --tinta: #f0efec; --tinta-2: #c3c2b7; --tinta-3: #8b8a82;
+  --borda: #34332f; --grade: #262624; --eixo: #55544e; --nivel: #403f3a; --trilho: #34332f;
+  --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --pocos: #c98500; --escape: #e66767;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  padding-block: 14px 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--fundo);
+  color: var(--tinta);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+[hidden] { display: none !important; }
+h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { margin: 0 0 6px; font-size: 13px; font-weight: 650; }
+p { margin: 0; }
+.mat { font-family: "KaTeX_Math", "Times New Roman", serif; font-style: italic; font-size: 1.08em; }
+.dica { color: var(--tinta-2); font-size: 12.5px; }
+
+.cabecalho, main, .rodape { max-width: 1500px; margin-inline: auto; }
+.cabecalho { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; margin-bottom: 12px; }
+.cabecalho p { color: var(--tinta-2); font-size: 13px; }
+.exemplos, .velocidade { display: flex; align-items: center; gap: 8px; color: var(--tinta-2); font-size: 13px; }
+select, button {
+  font: inherit; color: var(--tinta); background: var(--painel);
+  border: 1px solid var(--borda); border-radius: 6px; padding: 5px 10px;
+}
+select { max-width: 100%; }
+button { cursor: pointer; min-width: 96px; }
+button:hover, select:hover { border-color: var(--tinta-3); }
+:focus-visible { outline: 2px solid var(--serie-1); outline-offset: 2px; }
+
+main { display: grid; gap: 12px; }
+.painel { background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+
+/* Top row: controls, phase diagram, energy. */
+.topo { display: grid; gap: 12px; grid-template-columns: 300px minmax(0, 1.25fr) minmax(0, 1fr); align-items: stretch; }
+.fase, .energia { display: flex; flex-direction: column; gap: 6px; }
+.fase canvas { flex: 1 1 auto; min-height: 360px; cursor: crosshair; touch-action: none; }
+.energia canvas { flex: 1 1 auto; min-height: 260px; cursor: ew-resize; touch-action: pan-y; }
+canvas { display: block; width: 100%; height: 300px; }
+.potencial { color: var(--tinta-2); font-size: 12.5px; overflow-x: auto; }
+
+/* Legends. */
+.legenda { display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 0; padding: 0; list-style: none; color: var(--tinta-2); font-size: 12.5px; }
+.legenda li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.legenda label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.linha { display: inline-block; width: 20px; height: 0; border-top: 2px solid currentColor; }
+.linha.grossa { border-top-width: 3px; }
+.linha.tracejada { border-top-style: dashed; }
+.serie-1 { color: var(--serie-1); } .serie-2 { color: var(--serie-2); } .serie-3 { color: var(--serie-3); }
+.linha.nivel { color: var(--nivel); } .linha.tinta { color: var(--tinta); border-top-width: 1.5px; } .linha.tinta-3 { color: var(--tinta-3); border-top-width: 1.5px; }
+.ponto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--tinta); }
+.ponto.cheio { background: var(--tinta); }
+.amostra { display: inline-block; width: 14px; height: 6px; border-radius: 3px; }
+
+/* Controls: label, value, and a bar with colored segments and marks under the slider. */
+.controles { display: flex; flex-direction: column; gap: 10px; }
+#controles { display: flex; flex-direction: column; gap: 4px; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { padding: 0; margin-bottom: 1px; color: var(--tinta-2); font-size: 11px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+.controle { padding-bottom: 1px; }
+.rotulo { display: flex; align-items: baseline; gap: 7px; line-height: 1.25; }
+.rotulo .simbolo { min-width: 20px; }
+.rotulo .nome { color: var(--tinta-2); font-size: 12.5px; }
+.rotulo .valor { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 13px; }
+.barra { position: relative; height: 25px; --botao: 16px; }
+.trilho, .marcas { position: absolute; left: calc(var(--botao) / 2); right: calc(var(--botao) / 2); }
+.trilho { bottom: 5px; height: 6px; border-radius: 3px; background: var(--trilho); overflow: hidden; }
+.segmento { position: absolute; top: 0; bottom: 0; }
+.sub { background: var(--serie-1); } .super { background: var(--serie-2); } .res { background: var(--serie-3); }
+.pocos { background: var(--pocos); } .escape { background: var(--escape); }
+.marcas { top: 0; bottom: 0; pointer-events: none; }
+.marca { position: absolute; bottom: 1px; width: 2px; height: 13px; margin-left: -1px; background: var(--tinta); }
+.marca.fina { width: 1px; margin-left: -0.5px; }
+.marca span {
+  position: absolute; bottom: 13px; left: 50%; transform: translateX(-50%);
+  font-style: normal; font-size: 10.5px; line-height: 1; white-space: nowrap; color: var(--tinta-2);
+  padding: 1px 3px; cursor: pointer; pointer-events: auto;
+}
+.marca.esquerda span { left: -3px; transform: none; }
+.marca.direita span { left: auto; right: -3px; transform: none; }
+.marca sub { font-size: 0.8em; }
+
+.barra input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  position: absolute; left: 0; bottom: 0; width: 100%; height: var(--botao); margin: 0; padding: 0;
+  background: transparent; cursor: pointer;
+}
+.barra input[type="range"]::-webkit-slider-runnable-track { height: var(--botao); background: transparent; }
+.barra input[type="range"]::-moz-range-track { height: var(--botao); background: transparent; }
+.barra input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: var(--botao); height: var(--botao); border-radius: 50%;
+  background: var(--painel); border: 2px solid var(--tinta); box-shadow: 0 0 0 2px var(--painel);
+}
+.barra input[type="range"]::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--painel); border: 2px solid var(--tinta); box-shadow: 0 0 0 2px var(--painel);
+}
+.legenda-barras { padding-top: 8px; border-top: 1px solid var(--borda); }
+
+/* Time controls. */
+.transporte { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-block: 8px; }
+.transporte input[type="range"] { flex: 1 1 220px; min-width: 0; accent-color: var(--serie-1); }
+.leitura { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 2px 26px; font-variant-numeric: tabular-nums; color: var(--tinta-2); font-size: 13px; }
+.leitura span { white-space: nowrap; }
+
+/* Equation and solution. */
+.solucao { display: grid; gap: 8px 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+.formulas, .grafico { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.formulas h2:not(:first-child) { margin-top: 10px; }
+.formula { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+.formula .katex-display { margin: 0; text-align: left; }
+.formula .katex-display > .katex { text-align: left; }
+.formula .katex { font-size: 1.25em; }
+.formula.menor .katex { font-size: 1.05em; }
+.formula.menor { color: var(--tinta-2); }
+.lista { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; }
+.lista:empty, .formula:empty { display: none; }
+.lista .katex { font-size: 1.02em; }
+.lista.valores { color: var(--tinta-2); padding-top: 6px; border-top: 1px solid var(--borda); }
+.grafico canvas { height: 260px; cursor: ew-resize; touch-action: pan-y; }
+.etiqueta {
+  display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 999px; vertical-align: 1px;
+  border: 1px solid var(--borda); color: var(--tinta-2); font-size: 12px; font-weight: 500;
+}
+.etiqueta::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--tinta-3); }
+.etiqueta[data-regime="under"]::before { background: var(--serie-1); }
+.etiqueta[data-regime="over"]::before { background: var(--serie-2); }
+.etiqueta[data-regime="critical"]::before { background: var(--tinta); }
+
+.rodape { margin-top: 14px; color: var(--tinta-3); font-size: 12px; }
+
+/* Narrower screens: the energy panel goes under the phase diagram, then everything in one column. */
+@media (max-width: 1180px) {
+  .topo { grid-template-columns: 290px minmax(0, 1fr); }
+  .energia { grid-column: 1 / -1; }
+  .energia canvas { min-height: 0; height: 240px; flex: none; }
+  .solucao { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .topo { grid-template-columns: minmax(0, 1fr); }
+  .fase canvas { min-height: 0; height: min(90vw, 420px); flex: none; }
+  h1 { font-size: 18px; }
+}
