@@ -2,8 +2,7 @@
 /**
  * The three plots of the page, drawn on canvas elements:
  *
- *   Graficos.Phase      phase diagram, momentum p against position x, with the arrows of velocity and force;
- *                       .forceZoom is the factor by which the arrow of the external force is magnified
+ *   Graficos.Phase      phase diagram, momentum p against position x, with the arrows of velocity and force
  *   Graficos.Energy     kinetic, potential and total energy against time, with the potential V(x) in an inset
  *   Graficos.Solution   x(t)
  *
@@ -257,23 +256,9 @@
 
   // ------------------------------------------------------------------------------------------ phase diagram
 
-  /** Length in pixels the arrow of the external force reaches, at least, when the force is at its peak F0. */
-  const FORCE_ARROW = 30;
-
-  /**
-   * Factor by which the arrow of the external force is magnified: the smallest of 1, 2, 5, 10, 20, 50, ...
-   * that makes an arrow of `length` pixels reach FORCE_ARROW.
-   */
-  function magnification(length) {
-    if (!(length > 0) || length >= FORCE_ARROW) return 1;
-    const needed = FORCE_ARROW / length, power = Math.pow(10, Math.floor(Math.log10(needed) + 1e-9)), m = needed / power;
-    return (m <= 1 + 1e-9 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * power;
-  }
-
   class Phase {
     constructor(canvas) {
       this.area = new Frame(canvas, { l: 46, r: 12, t: 24, b: 34 });
-      this.forceZoom = 1;                   // magnification of the arrow of the external force (see render)
     }
 
     /**
@@ -308,9 +293,6 @@
     render(model) {
       const fr = this.area, { P, sol, view } = model;
       fr.x = [-view.xr, view.xr]; fr.y = [-view.pr, view.pr];
-      // On the scale of the other arrows the external force at its peak spans F0 tau; if that is too few
-      // pixels to see, its arrow is magnified by a round factor, which the page shows in the legend.
-      this.forceZoom = magnification(P.F0 * model.tau * (fr.bottom - fr.top) / (2 * view.pr));
       const ctx = fr.begin();
       fr.axes(ctx, ['x', ' (m)'], ['p', ' (kg·m/s)'], true);
       fr.clip(ctx);
@@ -369,8 +351,9 @@
      * its two components multiplied by the time tau, that is, the displacement in the diagram during tau if
      * the rates stayed as they are: velocity (horizontal) and total force (vertical) in gray, their sum in
      * the color of the text, and the external force F0 cos(w t), a part of the total force, thicker and red.
-     * On that scale the red arrow is often too short to see (at resonance the external force is 1/Q of the
-     * elastic force), so it is magnified by this.forceZoom, and drawn last, over the point and the thin arrows.
+     * All four are on the same scale, so the red arrow is the share of the total-force arrow due to the
+     * external force.  Near resonance it is short (the external force is 1/Q of the elastic force); it is
+     * drawn last, over the point and the thin arrows, so that it shows even then.
      */
     update(model) {
       const fr = this.area, { P, sol, view } = model, i = Math.min(model.index, view.nView - 1);
@@ -387,7 +370,7 @@
       arrow(ctx, ox, oy, ox, ey, css('--tinta-2'), 1.25);
       arrow(ctx, ox, oy, ex, ey, css('--tinta'), 1.25);
       fr.dot(ctx, x, p, css('--serie-1'), 5);
-      arrow(ctx, ox, oy, ox, fr.Y(p + this.forceZoom * external * model.tau), css('--forca'), 3.5);
+      arrow(ctx, ox, oy, ox, fr.Y(p + external * model.tau), css('--forca'), 3.5);
       ctx.restore();
     }
   }

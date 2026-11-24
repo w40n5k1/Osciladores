@@ -19,10 +19,9 @@ funciona sem internet.
   elipse tracejada é o regime estacionário. No ponto atual há quatro setas: a velocidade (horizontal) e a força
   resultante (vertical), finas e cinza; a sua soma, que é o vetor tangente (*x'*, *p'*); e, mais grossa e
   vermelha, a força externa *F*₀ cos(ω*t*). Todas multiplicadas pelo mesmo tempo τ = 0,35/ω₀, de modo que
-  mostram o deslocamento no diagrama durante τ. A seta vermelha seria muitas vezes pequena demais para se ver
-  (na ressonância, a força externa é 1/*Q* da força elástica): quando o seu máximo não chega a 30 pixels, ela é
-  ampliada por um fator redondo (2, 5, 10, ...), indicado na legenda. Arrastar no diagrama escolhe a condição
-  inicial.
+  mostram o deslocamento no diagrama durante τ, e a seta vermelha é a parte da seta vertical que se deve à
+  força externa. Perto da ressonância ela é pequena: no regime estacionário em ω = ω₀, *F*₀ = *kA*/*Q*. Arrastar
+  no diagrama escolhe a condição inicial.
 - **Intervalos do diagrama**: as duas barras finas, embaixo e à esquerda, definem os intervalos de *x* e de *p*,
   sempre simétricos (de −*a* a *a*). Com «ajustar à curva» marcado, os intervalos acompanham a trajetória; mover
   uma das barras desmarca a opção. As barras de *x*₀ e *p*₀ cobrem o intervalo do diagrama.

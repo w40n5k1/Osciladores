@@ -389,13 +389,7 @@
       decorate();
       formulas();
     }
-    if (stale || resized) {
-      for (const plot of plots) plot.render(model);
-      // The arrow of the external force is magnified when it would be too short to see: the legend says by how much.
-      const zoom = plots[0].forceZoom;
-      $('ampliacao').textContent = zoom > 1 ? ' (ampliada ' + String(zoom).replace('.', ',') + '×)' : '';
-      redraw = true;
-    }
+    if (stale || resized) { for (const plot of plots) plot.render(model); redraw = true; }
     stale = false;
     if (redraw) {
       model.index = Math.min(Math.round(state.t / model.sol.dt), model.sol.n - 1);
