@@ -88,7 +88,7 @@
     let symbolic = 'M\\,\\ddot{x}';
     const terms = [{ c: P.M, t: '\\ddot{x}' }];
     if (P.b !== 0) { symbolic += ' + b\\,\\dot{x}'; terms.push({ c: P.b, t: '\\dot{x}' }); }
-    symbolic += ' + k\\,x'; terms.push({ c: P.k, t: 'x' });
+    if (P.k !== 0) { symbolic += ' + k\\,x'; terms.push({ c: P.k, t: 'x' }); }
     if (P.l3 !== 0) { symbolic += ' + \\lambda_3\\,x^2'; terms.push({ c: P.l3, t: 'x^2' }); }
     if (P.l4 !== 0) { symbolic += ' + \\lambda_4\\,x^3'; terms.push({ c: P.l4, t: 'x^3' }); }
     const rhs = forcing('F_0', P.F0);
@@ -117,6 +117,7 @@
 
   const HOMOGENEOUS = {
     none: 'C_1\\cos(\\omega_0 t) + C_2\\operatorname{sen}(\\omega_0 t)',
+    free: 'C_1 + C_2\\,t',
     under: 'e^{-\\gamma t}\\left[C_1\\cos(\\omega_1 t) + C_2\\operatorname{sen}(\\omega_1 t)\\right]',
     critical: '\\left(C_1 + C_2\\,t\\right)e^{-\\gamma t}',
     over: 'C_1\\,e^{-(\\gamma-q)\\,t} + C_2\\,e^{-(\\gamma+q)\\,t}',
@@ -138,7 +139,7 @@
     // A constant that vanishes comes out of the arithmetic as rounding noise (1e-17): show it as zero.
     const size = Math.max(Math.abs(an.C1), Math.abs(an.C2), Math.abs(an.A));
     const clean = v => (Math.abs(v) < 1e-12 * size ? 0 : v);
-    out.values.push('C_1 = ' + tex(clean(an.C1)) + unit('m'), 'C_2 = ' + tex(clean(an.C2)) + unit(D.regime === 'critical' ? 'm/s' : 'm'));
+    out.values.push('C_1 = ' + tex(clean(an.C1)) + unit('m'), 'C_2 = ' + tex(clean(an.C2)) + unit(D.regime === 'critical' || an.homogeneous === 'free' ? 'm/s' : 'm'));
 
     if (an.particular === 'steady') {
       if (P.w !== 0) {
@@ -165,7 +166,9 @@
     if (an.particular === 'steady' && P.w !== 0 && D.gamma > 0) {
       notes.push('O primeiro termo é o transiente, que decai; o segundo é o regime estacionário.');
     }
-    if (an.particular === 'steady' && P.w !== 0 && D.gamma === 0) {
+    if (an.homogeneous === 'free') {
+      notes.push('Com k = 0 e sem amortecimento não há força restauradora: a parte homogênea é o movimento uniforme de uma massa livre.');
+    } else if (an.particular === 'steady' && P.w !== 0 && D.gamma === 0) {
       notes.push('Sem amortecimento o primeiro termo não decai: as duas frequências se superpõem (batimentos quando ω ≈ ω₀).');
     }
     if (an.particular === 'resonant') {
@@ -206,6 +209,18 @@
     }
   }
 
+  /** Exact solution of the purely quartic oscillator without friction or forcing (see Fisica.analytic). */
+  function quartic(out, P, D, an) {
+    out.formula = 'x(t) = A\\operatorname{cn}(\\Omega\\,t + u_0,\\ 1/\\sqrt{2})';
+    out.definitions.push('A = \\left(\\dfrac{4E}{\\lambda_4}\\right)^{1/4}', '\\Omega = A\\sqrt{\\lambda_4/M}',
+      'T = \\dfrac{4K(1/\\sqrt{2})}{\\Omega}');
+    out.values.push('A = ' + tex(an.amplitude) + unit('m'), '\\Omega = ' + tex(an.rate) + unit('rad/s'),
+      'u_0 = ' + tex(an.u0), 'T = ' + tex(an.period) + unit('s'));
+    out.note = 'Solução exata, em funções elípticas de Jacobi: cn é o cosseno elíptico, de módulo 1/√2, e K a integral ' +
+      'elíptica completa de primeira espécie; A é a amplitude e u₀ é fixado pelas condições iniciais. ' +
+      'Com k = 0 não há frequência natural (ω₀ = 0): a frequência é proporcional à amplitude, T ≈ 7,416 √(M/λ₄)/A.';
+  }
+
   /**
    * The closed-form solution, for display.
    *   regime        name of the damping regime of the linear part
@@ -221,6 +236,7 @@
 
     if (an && an.kind === 'linear') linear(out, P, D, an);
     else if (an && an.kind === 'pendulum') pendulum(out, P, D, an);
+    else if (an && an.kind === 'quartic') quartic(out, P, D, an);
     else if (an && an.kind === 'rest') {
       out.formula = P.system === 'pendulum' ? '\\theta(t) = \\theta_0' : 'x(t) = x_0';
       out.note = an.stable
@@ -229,6 +245,10 @@
     } else if (P.system === 'pendulum') {
       out.note = 'Com amortecimento ou força externa a curva é a solução numérica (Runge–Kutta de 4ª ordem). ' +
         'ω₀, γ e Q referem-se à aproximação harmônica, sen θ ≈ θ, válida para |θ| ≪ 1.';
+    } else if (D.harmonic) {
+      out.note = 'Força constante (ω = 0) sobre uma massa sem força restauradora (k = 0): a curva é a solução numérica ' +
+        '(Runge–Kutta de 4ª ordem). Sem amortecimento a aceleração é constante, F₀/M; com amortecimento a ' +
+        'velocidade tende a F₀/b.';
     } else {
       out.note = 'Com termos anarmônicos não há solução em funções elementares: a curva é a solução ' +
         'numérica (Runge–Kutta de 4ª ordem). ω₀, γ e Q referem-se à parte linear, ' +

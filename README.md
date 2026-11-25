@@ -93,6 +93,13 @@ as condições iniciais, mais uma solução particular da equação forçada.
 | superamortecido | *C*₁ e^(−(γ−*q*)*t*) + *C*₂ e^(−(γ+*q*)*t*), com *q* = √(γ² − ω₀²) |
 | forçado | + *A* cos(ω*t* − δ), com *A* = (*F*₀/*M*)/√((ω₀² − ω²)² + 4γ²ω²) e tan δ = 2γω/(ω₀² − ω²) |
 | forçado em ω = ω₀, sem amortecimento | + (*F*₀/2*M*ω₀) *t* sen(ω₀*t*) |
+| *k* = 0, sem amortecimento (massa livre) | *C*₁ + *C*₂ *t* |
+
+Com *k* = 0 não há frequência natural (ω₀ = 0): qualquer amortecimento está acima do crítico, e as fórmulas
+acima valem com *q* = γ. Uma força constante (ω = 0) com *k* = 0 fica para a integração numérica.
+
+Oscilador quártico puro (*k* = 0, λ₃ = 0, λ₄ > 0), sem atrito nem força externa, em funções elípticas de Jacobi:
+*x* = *A* cn(Ω*t* + *u*₀, 1/√2), com *E* = λ₄*A*⁴/4 e Ω = *A*√(λ₄/*M*); período 4*K*(1/√2)/Ω ≈ 7,416 √(*M*/λ₄)/*A*.
 
 Pêndulo sem atrito nem força externa, com κ² = *E*/(2*MgL*), em funções elípticas de Jacobi:
 
@@ -156,7 +163,7 @@ início de `js/app.js`. Um exemplo novo é uma linha a mais nessa lista.
 
     node tests/teste_fisica.js
 
-Precisa apenas do node. São 20 testes. Verificam que: as fórmulas do oscilador linear satisfazem a equação de
+Precisa apenas do node. São 23 testes. Verificam que: as fórmulas do oscilador linear satisfazem a equação de
 movimento e as condições iniciais, e a integração numérica coincide com elas em todos os regimes, livres e
 forçados; a amplitude estacionária é máxima em ω_R e a potência absorvida cai à metade em ω₋ e ω₊; os valores
 críticos de cada parâmetro; a energia se conserva sem atrito nem força externa, também com termos anarmônicos; o
@@ -166,7 +173,9 @@ do potencial cúbico; as funções elípticas coincidem com a quadratura direta;
 a equação, conserva a energia e coincide com a integração numérica na oscilação, na rotação e na separatriz; as
 equações em θ e *p*_θ, com atrito e força externa, são a segunda lei de Newton ao longo da trajetória; o
 período do pêndulo e seu limite harmônico; o passo é reduzido quando o movimento é rápido; uma solução
-continuada em pedaços coincide com a calculada de uma vez; as barras percorrem
+continuada em pedaços coincide com a calculada de uma vez; com *k* = 0, a massa livre e a força constante, a
+solução exata do oscilador quártico puro (equação, energia, integração numérica, período pela integral e
+inversamente proporcional à amplitude) e os equilíbrios; as barras percorrem
 os extremos do intervalo e os múltiplos do passo; e todas as fórmulas exibidas são LaTeX válido.
 
 Os testes cobrem o modelo e as fórmulas. A página em si (gráficos, controles) não tem testes automáticos.

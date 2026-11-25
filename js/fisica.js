@@ -102,6 +102,7 @@
    *   band    [lower, upper] forcing frequencies at which the absorbed power is half its maximum (which is
    *           at w0): sqrt(w0^2 + gamma^2) -+ gamma, a band of width exactly 2 gamma; null without damping
    *   bc, Mc, kc, Lc, gc   value of b, M, k, L or g that makes the damping critical, the others held fixed
+   *                        (with k = 0 there is no oscillation to damp: w0 = 0, bc = 0 and Mc is infinite)
    *   harmonic             true for the linear oscillator (not the pendulum, and l3 = l4 = 0)
    */
   function derived(P) {
@@ -121,7 +122,7 @@
       wr: gamma > 0 && wr2 > 0 ? Math.sqrt(wr2) : null,
       band: gamma > 0 ? [center - gamma, center + gamma] : null,
       bc: pendulum ? 2 * P.M * w0 : 2 * Math.sqrt(P.k * P.M),
-      Mc: pendulum ? P.b / (2 * w0) : P.b * P.b / (4 * P.k),
+      Mc: pendulum ? P.b / (2 * w0) : P.k > 0 ? P.b * P.b / (4 * P.k) : P.b > 0 ? Infinity : 0,
       kc: P.b * P.b / (4 * P.M),
       Lc: pendulum && gamma > 0 ? P.g / (gamma * gamma) : null,
       gc: pendulum ? gamma * gamma * P.L : null,
@@ -153,14 +154,28 @@
   }
 
   /**
+   * True where the potential has a minimum: V'' > 0, or, when V'' and V''' vanish there, V'''' > 0 (the
+   * bottom of the purely quartic well, k = 0 and l3 = 0, where the curvature is zero).
+   */
+  function minimumAt(P, x) {
+    const bend = curvature(P, x);
+    if (isPendulum(P) || bend !== 0) return bend > 0;
+    return 2 * P.l3 + 6 * P.l4 * x === 0 && P.l4 > 0;
+  }
+
+  /**
    * Equilibrium points, in increasing order.  Each is {x, stable}: stable where the potential has a minimum.
-   * Oscillator: the zeros of x (k + l3 x + l4 x^2).  Pendulum: the lowest point and the two inverted positions
-   * at theta = -+ pi that bound one turn (the same point of the circle).
+   * Oscillator: the zeros of x (k + l3 x + l4 x^2); with k = 0 the origin is a double zero, counted once, and the
+   * other is -l3/l4.  The free particle (k = l3 = l4 = 0) has none: no point is singled out.  Pendulum: the
+   * lowest point and the two inverted positions at theta = -+ pi that bound one turn (the same point of the circle).
    */
   function equilibria(P) {
     if (isPendulum(P)) return [{ x: -Math.PI, stable: false }, { x: 0, stable: true }, { x: Math.PI, stable: false }];
+    if (P.k === 0 && P.l3 === 0 && P.l4 === 0) return [];
     const xs = [0];
-    if (P.l4 === 0) {
+    if (P.k === 0) {
+      if (P.l3 !== 0 && P.l4 !== 0) xs.push(-P.l3 / P.l4);
+    } else if (P.l4 === 0) {
       if (P.l3 !== 0) xs.push(-P.k / P.l3);
     } else {
       const disc = P.l3 * P.l3 - 4 * P.l4 * P.k;
@@ -169,7 +184,7 @@
         xs.push((-P.l3 - s) / (2 * P.l4), (-P.l3 + s) / (2 * P.l4));
       }
     }
-    return xs.sort((a, b) => a - b).map(x => ({ x, stable: curvature(P, x) > 0 }));
+    return xs.sort((a, b) => a - b).map(x => ({ x, stable: minimumAt(P, x) }));
   }
 
   /**
@@ -279,12 +294,17 @@
    * conditions, plus a particular solution x_p of the forced equation.
    *
    *   homogeneous      'none'      C1 cos(w0 t) + C2 sin(w0 t)
+   *                    'free'      C1 + C2 t                                (k = 0 and no damping: a free mass)
    *                    'under'     exp(-gamma t) [C1 cos(w1 t) + C2 sin(w1 t)]
    *                    'critical'  (C1 + C2 t) exp(-gamma t)
    *                    'over'      C1 exp(-(gamma - q) t) + C2 exp(-(gamma + q) t)
    *   particular       'none'      0                                        (F0 = 0)
    *                    'steady'    A cos(w t - delta)                       (see steadyState)
    *                    'resonant'  (F0 / 2 M w0) t sin(w0 t)                (no damping and w = w0)
+   *
+   * With k = 0 and damping the regime is 'over', with q = gamma: the rates are 0 and 2 gamma, and the formula
+   * above holds as it stands.  A constant force (w = 0) on a mass with k = 0 has no particular solution of
+   * these forms: analytic() leaves that case to the numerical solution.
    *
    * Returns {kind: 'linear', homogeneous, particular, C1, C2, A, delta, x(t), v(t), xh(t), xp(t)}.
    */
@@ -310,8 +330,12 @@
 
     // Homogeneous solution with x_h(0) = a and x_h'(0) = c.
     const a = x0 - xp(0), c = v0 - vp(0);
-    let C1, C2, xh, vh;
-    if (D.regime === 'none' || D.regime === 'under') {
+    let C1, C2, xh, vh, homogeneous = D.regime;
+    if (w0 === 0 && gamma === 0) {
+      homogeneous = 'free'; C1 = a; C2 = c;
+      xh = t => C1 + C2 * t;
+      vh = () => C2;
+    } else if (D.regime === 'none' || D.regime === 'under') {
       C1 = a; C2 = (c + gamma * a) / w1;
       xh = t => Math.exp(-gamma * t) * (C1 * Math.cos(w1 * t) + C2 * Math.sin(w1 * t));
       vh = t => Math.exp(-gamma * t) * ((C2 * w1 - gamma * C1) * Math.cos(w1 * t) - (C1 * w1 + gamma * C2) * Math.sin(w1 * t));
@@ -326,7 +350,7 @@
       vh = t => C1 * r1 * Math.exp(r1 * t) + C2 * r2 * Math.exp(r2 * t);
     }
     return {
-      kind: 'linear', homogeneous: D.regime, particular, C1, C2, A, delta, xh, xp,
+      kind: 'linear', homogeneous, particular, C1, C2, A, delta, xh, xp,
       x: t => xh(t) + xp(t),
       v: t => vh(t) + vp(t),
     };
@@ -393,24 +417,56 @@
     });
   }
 
+  /**
+   * Exact solution of the purely quartic oscillator, M x'' = -l4 x^3 with l4 > 0 (k = 0, l3 = 0), without
+   * friction or forcing.
+   *
+   * The energy E = p^2/2M + l4 x^4/4 is constant; the amplitude A is where it is all potential, E = l4 A^4/4.
+   * Jacobi's cn of parameter m obeys cn'' = -(1 - 2m) cn - 2m cn^3, which for m = 1/2 is cn'' = -cn^3.  Hence
+   *
+   *     x = A cn(W t + u0 | 1/2) ,    x' = -A W sn dn ,    W = A sqrt(l4/M) ,
+   *
+   * with period 4 K(1/2) / W: the frequency is proportional to the amplitude.  u0 is fixed by the initial
+   * condition.  With phi0 = am(u0): cn = cos(phi0) = x0/A, and sn = sin(phi0) follows from the velocity, since
+   * with r = x'(0)/(A W) one has sn^2 dn^2 = sn^2 (1 - sn^2/2) = r^2, that is sn^2 = 2 r^2 / (1 + sqrt(1 - 2 r^2)),
+   * with the sign opposite to that of x'(0).  Taking each from its own datum keeps both accurate at the
+   * turning points, where 1 - (x0/A)^2 loses its digits.
+   *
+   * Returns {kind: 'quartic', amplitude, rate, u0, period, x(t), v(t)}.
+   */
+  function quarticExact(P, x0, p0) {
+    const E = energy(P, x0, p0), A = Math.pow(4 * E / P.l4, 0.25), W = A * Math.sqrt(P.l4 / P.M);
+    const r2 = Math.min(0.5, (p0 / (P.M * A * W)) ** 2);
+    const c0 = x0 / A, s0 = Math.sqrt(2 * r2 / (1 + Math.sqrt(1 - 2 * r2))) * (p0 > 0 ? -1 : 1);
+    const fn = jacobi(0.5, 0.5), u0 = ellipticF(Math.atan2(s0, c0), 0.5, 0.5);
+    return {
+      kind: 'quartic', amplitude: A, rate: W, u0, period: 4 * ellipticK(0.5, 0.5) / W,
+      x: t => A * fn(W * t + u0).cn,
+      v: t => { const f = fn(W * t + u0); return -A * W * f.sn * f.dn; },
+    };
+  }
+
   /** True for a mass placed at rest exactly on an equilibrium point, with no external force. */
   function atRest(P, x0, p0) {
     if (p0 !== 0 || P.F0 !== 0) return false;
-    const scale = isPendulum(P) ? P.M * P.g * P.L : P.k * Math.abs(x0);
+    const a = Math.abs(x0);
+    const scale = isPendulum(P) ? P.M * P.g * P.L : a * (P.k + a * (Math.abs(P.l3) + a * Math.abs(P.l4)));
     return Math.abs(force(P, x0)) <= 1e-12 * scale;
   }
 
   /**
    * Closed-form solution with x(0) = x0 and p(0) = p0, or null if there is none:
-   *   {kind: 'linear', ...}     the linear oscillator (see linearExact)
+   *   {kind: 'linear', ...}     the linear oscillator (see linearExact); not for a constant force with k = 0
    *   {kind: 'pendulum', ...}   the pendulum without friction or forcing (see pendulumExact)
+   *   {kind: 'quartic', ...}    the purely quartic oscillator without friction or forcing (see quarticExact)
    *   {kind: 'rest', stable}    a mass at rest on an equilibrium point of a nonlinear system: it stays there
    * Every kind has x(t) and v(t) = x'(t)  (the angle and the angular velocity, for the pendulum).
    */
   function analytic(P, x0, p0) {
-    if (derived(P).harmonic) return linearExact(P, x0, p0);
-    if (atRest(P, x0, p0)) return { kind: 'rest', stable: curvature(P, x0) > 0, x: () => x0, v: () => 0 };
+    if (derived(P).harmonic) return P.k === 0 && P.F0 !== 0 && P.w === 0 ? null : linearExact(P, x0, p0);
+    if (atRest(P, x0, p0)) return { kind: 'rest', stable: minimumAt(P, x0), x: () => x0, v: () => 0 };
     if (isPendulum(P) && P.b === 0 && P.F0 === 0) return pendulumExact(P, x0, p0);
+    if (!isPendulum(P) && P.k === 0 && P.l3 === 0 && P.l4 > 0 && P.b === 0 && P.F0 === 0) return quarticExact(P, x0, p0);
     return null;
   }
 

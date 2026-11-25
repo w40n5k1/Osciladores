@@ -37,7 +37,7 @@
   };
   /** Smallest half-width of the phase diagram, in m and in kg m/s: where its two thin sliders start. */
   const SMALLEST = 0.01;
-  /** The arrows of the phase diagram show the displacement during ARROW_TIME / w0 seconds. */
+  /** The arrows of the phase diagram show the displacement during ARROW_TIME / w0 seconds (see arrowRate for k = 0). */
   const ARROW_TIME = 0.35;
   /** Gravity at the surface of three bodies (m/s^2), marked on the bar of g. */
   const GRAVITIES = [{ at: 1.62, label: 'Lua', snap: true }, { at: 9.81, label: 'Terra', snap: true }, { at: 24.79, label: 'Júpiter', snap: true }];
@@ -49,7 +49,7 @@
   const GROUPS = [
     { systems: true, controls: [
       { id: 'M', symbol: 'M', name: 'massa', unit: 'kg', min: 0.1, max: 5, step: 0.05, value: 1, decimals: 2 },
-      { id: 'k', only: 'oscillator', symbol: 'k', name: 'constante elástica', unit: 'N/m', min: 0.5, max: 20, step: 0.1, value: 4, decimals: 2 },
+      { id: 'k', only: 'oscillator', symbol: 'k', name: 'constante elástica', unit: 'N/m', min: 0, max: 20, step: 0.1, value: 4, decimals: 2 },
       { id: 'L', only: 'pendulum', symbol: 'L', name: 'comprimento', unit: 'm', min: 0.2, max: 5, step: 0.05, value: 1, decimals: 2 },
       { id: 'g', only: 'pendulum', symbol: 'g', name: 'gravidade', unit: 'm/s²', min: 1, max: 25, step: 0.05, value: 9.81, decimals: 2 },
       { id: 'b', symbol: 'b', name: 'amortecimento', unit: 'kg/s', min: 0, max: 10, step: 0.05, value: 0, decimals: 2 },
@@ -94,6 +94,7 @@
     { name: 'Forçado em ressonância, com amortecimento', b: 0.4, F0: 1, w: 2, x0: 0, T: 40 },
     { name: 'Forçado, com batimentos, com amortecimento', b: 0.1, F0: 1, w: 1.8, x0: 0, T: 80 },
     { name: 'Quártico: mola que endurece', l4: 3, x0: 1.5, T: 20 },
+    { name: 'Quártico puro (k = 0)', k: 0, l4: 4, x0: 1, T: 20 },
     { name: 'Quártico forçado (Duffing)', b: 0.3, l4: 2, F0: 2.5, w: 2.6, x0: 0, T: 80 },
     { name: 'Cúbico: oscilação assimétrica', l3: -1.5, x0: 1.6, T: 20 },
     { name: 'Cúbico: escape', l3: -1.5, x0: -1.8, T: 20 },
@@ -193,6 +194,23 @@
   }
 
   /** Builds the model from the values of the controls: the solution from t = 0 over the chosen duration. */
+  /**
+   * Rate (rad/s) that sets the length of the arrows of the phase diagram: the natural frequency w0.  With
+   * k = 0 there is none, and the largest local frequency sqrt(|V''| / M) along the solution takes its place
+   * (1 rad/s for the free mass, which has no frequency at all).  Of a mass that escapes, only the part of the
+   * solution within the reach of the diagram counts (see show).
+   */
+  function arrowRate(P, D, sol) {
+    if (D.w0 > 0) return D.w0;
+    let limit = Infinity, bend = 0;
+    if (sol.escaped) {
+      const barriers = F.equilibria(P).filter(e => !e.stable).map(e => Math.abs(e.x));
+      limit = Math.max(1.5 * Math.max.apply(null, barriers.concat(0)), 1.5 * Math.abs(sol.x[0]), 0.1);
+    }
+    for (let i = 0; i < sol.n; i++) if (Math.abs(sol.x[i]) <= limit) bend = Math.max(bend, Math.abs(F.curvature(P, sol.x[i])));
+    return Math.sqrt(bend / F.inertia(P)) || 1;
+  }
+
   function compute() {
     const P = { system: state.system };
     for (const id of ['M', 'k', 'L', 'g', 'b', 'l3', 'l4', 'F0', 'w']) P[id] = controls[id].value;
@@ -204,12 +222,12 @@
       x0w: reduced(x0),
       names: NAMES[state.system],
       an: sol.exact,
-      approx: D.harmonic ? null : F.analytic(F.harmonicApproximation(P), x0, p0),
+      approx: D.harmonic || D.w0 === 0 ? null : F.analytic(F.harmonicApproximation(P), x0, p0),   // none without a linear term
       steady: F.steadyState(P),
       eq: F.equilibria(P),
       components: state.components,
       showApprox: state.approx,
-      tau: ARROW_TIME / D.w0,
+      tau: ARROW_TIME / arrowRate(P, D, sol),
       index: 0,
       offset: 0,
       serial: ++builds,
@@ -341,8 +359,9 @@
     const split = (control, at, below, above) => (damped
       ? [{ from: control.spec.min, to: at, kind: below }, { from: at, to: control.spec.max, kind: above }] : []);
 
-    c.b.decorate([{ from: 0, to: D.bc, kind: 'sub' }, { from: D.bc, to: c.b.spec.max, kind: 'super' }], [zero, critical(D.bc)]);
-    c.M.decorate(split(c.M, D.Mc, 'super', 'sub'), damped ? [critical(D.Mc)] : []);
+    // With k = 0 (w0 = 0) every damping is above the critical one and no mass makes it critical.
+    c.b.decorate([{ from: 0, to: D.bc, kind: 'sub' }, { from: D.bc, to: c.b.spec.max, kind: 'super' }], D.bc > 0 ? [zero, critical(D.bc)] : [zero]);
+    c.M.decorate(split(c.M, Math.min(D.Mc, c.M.spec.max), 'super', 'sub'), damped && isFinite(D.Mc) ? [critical(D.Mc)] : []);
     if (P.system === 'pendulum') {
       c.L.decorate(split(c.L, D.Lc, 'sub', 'super'), damped ? [critical(D.Lc)] : []);
       c.g.decorate(split(c.g, D.gc, 'super', 'sub'), GRAVITIES.concat(damped ? [critical(D.gc)] : []));
@@ -358,14 +377,17 @@
     }
     c.w.decorate(D.band ? [{ from: D.band[0], to: D.band[1], kind: 'res' }] : [], marks);
 
-    if (P.l4 > 0) {
+    // Two wells need k > 0: with k = 0 the origin is a point of inflection (or the bottom of the only well).
+    if (P.l4 > 0 && P.k === 0) {
+      c.l3.decorate([], [zero]);
+    } else if (P.l4 > 0) {
       const edge = 2 * Math.sqrt(P.k * P.l4);           // |l3| above which k + l3 x + l4 x^2 has real roots
       c.l3.decorate([{ from: c.l3.spec.min, to: -edge, kind: 'pocos' }, { from: edge, to: c.l3.spec.max, kind: 'pocos' }], [zero]);
     } else {
       c.l3.decorate([{ from: c.l3.spec.min, to: c.l3.spec.max, kind: 'escape' }], [zero]);
     }
     const l4 = [{ from: c.l4.spec.min, to: 0, kind: 'escape' }];
-    if (P.l3 !== 0) l4.push({ from: 0, to: P.l3 * P.l3 / (4 * P.k), kind: 'pocos' });
+    if (P.l3 !== 0 && P.k > 0) l4.push({ from: 0, to: P.l3 * P.l3 / (4 * P.k), kind: 'pocos' });
     c.l4.decorate(l4, [zero]);
 
     for (const control of initial()) control.decorate([], [zero]);
@@ -410,18 +432,21 @@
     $('solNota').textContent = s.note;
     tex($('potencial'), Fm.potential(P), false);
     $('metodo').textContent = Fm.method(sol.step);
-    $('escalaSetas').textContent = 'τ = ' + ARROW_TIME.toString().replace('.', ',') + '/ω₀ = ' + Fm.text(model.tau) + ' s';
+    $('escalaSetas').textContent = 'τ = ' + (model.D.w0 > 0 ? ARROW_TIME.toString().replace('.', ',') + '/ω₀ = ' : '') + Fm.text(model.tau) + ' s';
 
     // Legends follow what the plots show.
     const forcedLinear = !!an && an.kind === 'linear' && an.particular !== 'none';
-    $('nomeCurva').textContent = !an ? 'numérica' : an.kind === 'pendulum' ? 'exata' : 'analítica';
+    $('nomeCurva').textContent = !an ? 'numérica' : an.kind === 'pendulum' || an.kind === 'quartic' ? 'exata' : 'analítica';
     $('legTransiente').hidden = $('legParticular').hidden = !(forcedLinear && state.components);
     $('opcaoComponentes').hidden = !forcedLinear;
     $('nomeHomogenea').textContent = D.gamma > 0 ? 'transiente' : 'solução homogênea';
     $('nomeParticular').textContent = D.gamma > 0 ? 'regime estacionário' : 'solução particular';
     $('opcaoAproximacao').hidden = !model.approx;
     $('legEstacionario').hidden = !(model.steady && D.harmonic && D.gamma > 0 && P.w > 0);
+    const stable = model.eq.some(e => e.stable);
+    $('legEstavel').hidden = !stable;
     $('legSeparatriz').hidden = $('legInstavel').hidden = !model.eq.some(e => !e.stable);
+    $('legInstavelTexto').textContent = stable ? 'instável' : 'equilíbrio instável';
     $('legForca').hidden = P.F0 === 0;
 
     const aviso = $('aviso');

@@ -34,6 +34,15 @@
  * 14. Every formula the page can show is valid LaTeX for KaTeX.
  * 15. A slider moves over the two ends of its range and the multiples of its step between them, whatever
  *     the ends are: zero is on the grid, and both ends are reached exactly.
+ * No linear restoring force (k = 0)
+ * 16. The linear cases with k = 0 (the free mass, with and without friction and forcing) are among those of
+ *     items 1 and 2.  A constant force with k = 0 has no closed form in the page: the numerical solution is
+ *     the uniformly accelerated motion, or tends to the velocity F0/b.
+ * 17. The purely quartic oscillator: the exact solution A cn(W t + u0 | 1/2) satisfies the equation of motion
+ *     and the initial conditions, agrees with Runge-Kutta, and has the period 4 K(1/2) / W, which equals the
+ *     period integral and is inversely proportional to the amplitude.
+ * 18. Equilibria with k = 0: the origin counted once, a minimum for the purely quartic well and a point of
+ *     inflection when there is a cubic term; none for the free mass.
  */
 'use strict';
 const test = require('node:test');
@@ -91,6 +100,10 @@ const LINEAR = [
   ['forced, no damping, above w0', with_({ F0: 1, w: 3.1 }), 0.4, -0.2],
   ['resonance without damping', with_({ F0: 0.5, w: 2 }), 0.3, 0],
   ['static force', with_({ b: 0.5, F0: 2, w: 0 }), 0, 0],
+  ['k = 0: free mass', with_({ k: 0 }), 1, 0.5],
+  ['k = 0: free mass with friction', with_({ k: 0, b: 0.8 }), 1, 0.5],
+  ['k = 0: forced, no damping', with_({ k: 0, F0: 1, w: 1.5 }), 0.3, -0.2],
+  ['k = 0: forced, with friction', with_({ k: 0, b: 0.5, F0: 1, w: 1.5 }), 0, 0],
 ];
 
 test('linear oscillator: closed forms satisfy the equation of motion and the initial conditions', () => {
@@ -432,10 +445,76 @@ test('solve: a mass at rest on an equilibrium point stays there', () => {
   assert.strictEqual(F.solve(pendulum({ b: 0.3 }), Math.PI, 1e-9, 5).exact, null, 'nor with any momentum');
 });
 
+test('k = 0: a constant force is left to the numerical solution', () => {
+  const P = with_({ k: 0, F0: 2, w: 0 }), T = 10;
+  assert.strictEqual(F.analytic(P, 0.5, 0.3), null);
+  const free = F.solve(P, 0.5, 0.3, T), end = free.n - 1;
+  assert.strictEqual(free.exact, null);
+  assert.ok(Math.abs(free.x[end] - (0.5 + 0.3 * T / P.M + P.F0 * T * T / (2 * P.M))) < 1e-9, 'uniform acceleration');
+  const Pb = with_({ k: 0, b: 0.5, F0: 2, w: 0 }), damped = F.solve(Pb, 0, 0, 60);
+  assert.ok(Math.abs(damped.p[damped.n - 1] / Pb.M - Pb.F0 / Pb.b) < 1e-9, 'terminal velocity F0/b');
+  const D = F.derived(with_({ k: 0, b: 0.5 }));
+  assert.deepStrictEqual([D.w0, D.regime, D.bc, D.Mc, D.q], [0, 'over', 0, Infinity, D.gamma]);
+  assert.deepStrictEqual([F.derived(with_({ k: 0 })).regime, F.derived(with_({ k: 0 })).Mc], ['none', 0]);
+});
+
+test('k = 0: the purely quartic oscillator has an exact solution', () => {
+  const K = F.ellipticK(0.5);
+  for (const [M, l4, x0, p0] of [[1, 4, 1, 0], [1, 4, -0.7, 0], [0.5, 2, 0.4, 1.3], [2, 5, -1.1, -0.8], [1, 0.3, 0, 2], [1, 4, 1.2, 1e-9]]) {
+    const P = with_({ k: 0, l4, M }), an = F.analytic(P, x0, p0), name = JSON.stringify([M, l4, x0, p0]);
+    assert.strictEqual(an.kind, 'quartic', name);
+    assert.ok(Math.abs(an.x(0) - x0) < 1e-12 * an.amplitude && Math.abs(M * an.v(0) - p0) < 1e-12 * M * an.amplitude * an.rate, 'initial conditions ' + name);
+    // Equation of motion and energy, by finite differences of the closed form.
+    const h = 1e-4 / an.rate, E0 = F.energy(P, x0, p0);
+    for (let t = 0; t < 3 * an.period; t += an.period / 37) {
+      const acc = (an.x(t + h) - 2 * an.x(t) + an.x(t - h)) / (h * h), vel = (an.x(t + h) - an.x(t - h)) / (2 * h);
+      assert.ok(Math.abs(M * acc + l4 * an.x(t) ** 3) < 2e-5 * l4 * an.amplitude ** 3, `equation of motion at t = ${t}, ${name}`);
+      assert.ok(Math.abs(vel - an.v(t)) < 1e-6 * an.amplitude * an.rate, 'v is the derivative of x ' + name);
+      assert.ok(Math.abs(F.energy(P, an.x(t), M * an.v(t)) - E0) < 1e-12 * E0, 'energy ' + name);
+    }
+    const d = distance(F.integrate(P, x0, p0, 20, { substeps: 20 }), P, an);
+    assert.ok(d.dx < 1e-8 * an.amplitude && d.dp < 1e-8 * M * an.amplitude * an.rate, `Runge-Kutta ${JSON.stringify(d)} ${name}`);
+    assert.ok(Math.abs(an.period - 4 * K / (an.amplitude * Math.sqrt(l4 / M))) < 1e-14 * an.period);
+    assert.ok(Math.abs(an.x(an.period) - x0) < 1e-11 * an.amplitude, 'periodic ' + name);
+  }
+  // The period against the period integral, and inversely proportional to the amplitude.
+  const P = with_({ k: 0, l4: 3 }), a = 1.5, E = F.potential(P, a), n = 20000;
+  let T = 0;
+  for (let i = 0; i < n; i++) {
+    const u = (i + 0.5) * (Math.PI / 2) / n, x = a * Math.sin(u);
+    T += a * Math.cos(u) / Math.sqrt(2 * (E - F.potential(P, x)) / P.M) * (Math.PI / 2) / n;
+  }
+  T *= 4;
+  const exact = F.analytic(P, a, 0);
+  assert.ok(Math.abs(exact.period - T) < 1e-7 * T, `period ${exact.period} against the integral ${T}`);
+  assert.ok(Math.abs(exact.period - 7.416298709205487 / (a * Math.sqrt(P.l4 / P.M))) < 1e-12);
+  assert.ok(Math.abs(F.analytic(P, 2 * a, 0).period * 2 - exact.period) < 1e-13);
+  assert.strictEqual(F.solve(P, a, 0, 5).exact.kind, 'quartic');
+  assert.strictEqual(F.solve(with_({ k: 0, l4: 3, b: 0.1 }), a, 0, 5).exact, null, 'not with friction');
+  assert.strictEqual(F.solve(with_({ k: 0, l4: 3, F0: 1 }), a, 0, 5).exact, null, 'not with an external force');
+  assert.strictEqual(F.solve(with_({ k: 0, l3: 0.5, l4: 3 }), a, 0, 5).exact, null, 'not with a cubic term');
+});
+
+test('k = 0: equilibria', () => {
+  assert.deepStrictEqual(F.equilibria(with_({ k: 0, l4: 2 })), [{ x: 0, stable: true }]);
+  assert.deepStrictEqual(F.equilibria(with_({ k: 0, l4: -2 })), [{ x: 0, stable: false }]);
+  assert.deepStrictEqual(F.equilibria(with_({ k: 0, l3: -1, l4: 2 })), [{ x: 0, stable: false }, { x: 0.5, stable: true }]);
+  assert.deepStrictEqual(F.equilibria(with_({ k: 0, l3: 1, l4: 2 })), [{ x: -0.5, stable: true }, { x: 0, stable: false }]);
+  assert.deepStrictEqual(F.equilibria(with_({ k: 0, l3: 1.5 })), [{ x: 0, stable: false }]);
+  assert.deepStrictEqual(F.equilibria(with_({ k: 0 })), []);
+  for (const P of [with_({ k: 0, l3: -1, l4: 2 }), with_({ k: 0, l4: 2 })]) for (const e of F.equilibria(P)) assert.ok(F.force(P, e.x) === 0);
+  const rest = F.analytic(with_({ k: 0, l4: 2 }), 0, 0);
+  assert.deepStrictEqual([rest.kind, rest.stable], ['rest', true]);
+  assert.strictEqual(F.analytic(with_({ k: 0, l3: -1, l4: 2 }), 0, 0).stable, false);
+  assert.strictEqual(F.analytic(with_({ k: 0, l3: -1, l4: 2 }), 0.5, 0).stable, true);
+});
+
 test('every formula is valid LaTeX', () => {
   const katex = require(path.join('..', 'vendor', 'katex', 'katex.min.js'));
   const render = s => katex.renderToString(s, { throwOnError: true, displayMode: true });
   const all = LINEAR.concat([['anharmonic', with_({ b: 0.3, l3: -1, l4: 2, F0: 1 }), 1, 0], ['anharmonic at rest', with_({ l4: 2 }), 0, 0],
+    ['purely quartic', with_({ k: 0, l4: 4 }), 1, 0.4], ['purely quartic at rest', with_({ k: 0, l4: 4 }), 0, 0],
+    ['k = 0: constant force', with_({ k: 0, b: 0.5, F0: 2, w: 0 }), 0, 0],
     ['damped pendulum', pendulum({ b: 0.3 }), 1, 0], ['inverted pendulum', pendulum({ b: 0.3 }), Math.PI, 0]],
     SWINGS.map(([name, x0, p0]) => ['pendulum, ' + name, PENDULUM, x0, p0]), [['pendulum in another well', PENDULUM, 7, 1]]);
   for (const [name, P, x0, p0] of all) {
