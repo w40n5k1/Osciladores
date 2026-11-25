@@ -7,6 +7,9 @@ amortecimento) e sobre o pêndulo. Feita para o curso de Mecânica e Termodinâm
 Para usar, abra `index.html` no navegador, com a pasta inteira ao lado dele. Não há nada a instalar e a página
 funciona sem internet.
 
+O repositório traz também uma segunda página, no mesmo modelo: [Polinômio de 2º grau no plano complexo](polinomio/),
+sobre as raízes de *x*² + *bx* + *c*. Ela está descrita em `polinomio/README.md`.
+
 ## O que a página mostra
 
 - **Controles** (à esquerda). No alto, a chave entre os dois sistemas: *Oscilador harmônico* (*M*, *k*, *b*, os
@@ -155,6 +158,7 @@ parte linear: valem para pequenas amplitudes.
     js/app.js             controles, exemplos, animação: o ponto de partida para mudar a página
     tests/teste_fisica.js testes do modelo
     vendor/katex/         KaTeX 0.16.11 (tipografia das fórmulas), licença MIT
+    polinomio/            a segunda página, com os seus arquivos; usa o KaTeX de vendor/katex/
 
 Faixas, passos e valores iniciais dos controles estão em `GROUPS`, e os exemplos do menu em `EXAMPLES`, ambos no
 início de `js/app.js`. Um exemplo novo é uma linha a mais nessa lista.
