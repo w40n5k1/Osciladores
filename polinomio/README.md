@@ -15,7 +15,7 @@ KaTeX de `vendor/katex/`, na raiz. Não há nada a instalar e a página funciona
   elas, o polinômio com os valores atuais, o discriminante, as raízes e o vértice.
 - **Módulo |*y*| sobre o plano complexo de *x*** (painel principal): a superfície cuja altura sobre cada ponto
   *x* do plano (Re *x*, Im *x*) é |*y*|, mostrada até |*y*| = 8. Ela só se anula nas raízes, e é aí que toca o
-  plano: os círculos cheios *x*₁ e *x*₂. O círculo vazio é o ponto de sela, sobre *x* = −*b*/2. A curva azul é o
+  plano: os círculos cheios *x*<sub>+</sub> e *x*<sub>−</sub>. O círculo vazio é o ponto de sela, sobre *x* = −*b*/2. A curva azul é o
   corte da superfície sobre o eixo real, isto é, |*y*| para *x* real; a laranja, que se pode desligar, é o corte
   sobre a reta Re *x* = −*b*/2. Arrastar gira a superfície (com o foco nela, também as setas do teclado);
   «vista inicial» volta ao ponto de vista do começo.
@@ -32,13 +32,13 @@ opaca aparece esmaecida.
 
     y = x² + b x + c = (x − x_v)² + y_v        x_v = −b/2        y_v = c − b²/4 = −Δ/4        Δ = b² − 4c
 
-em que (*x*_v, *y*_v) é o vértice da parábola. As raízes são *x* = *x*_v ∓ √(−*y*_v):
+em que (*x*_v, *y*_v) é o vértice da parábola. As raízes são *x*<sub>±</sub> = (−*b* ± √Δ)/2 = *x*_v ± √(−*y*_v):
 
 | discriminante | raízes |
 |---|---|
-| Δ > 0 | reais e distintas, *x*_v ∓ √Δ/2 |
+| Δ > 0 | reais e distintas, *x*_v ± √Δ/2 |
 | Δ = 0 | reais e iguais, *x*_v |
-| Δ < 0 | complexas conjugadas, *x*_v ∓ i√(−Δ)/2 |
+| Δ < 0 | complexas conjugadas, *x*_v ± i√(−Δ)/2 |
 
 Com *x* = *u* + i*v* e *s* = *u* − *x*_v, Re *y* = *s*² − *v*² + *y*_v e Im *y* = 2*sv*. Assim, *y* é real sobre
 duas retas do plano, que se cruzam em *x*_v: o eixo real, onde *y* = *y*_v + *s*², e a reta Re *x* = *x*_v, onde
@@ -47,8 +47,8 @@ duas retas do plano, que se cruzam em *x*_v: o eixo real, onde *y* = *y*_v + *s*
 Salvo se *y*_v = 0, a superfície |*y*| tem em *x*_v um ponto de sela, de altura |*y*_v|: um mínimo ao longo de
 uma das duas retas e um máximo ao longo da outra. O gradiente de |*y*| não se anula em nenhum outro ponto (só
 onde d*y*/d*x* = 2*x* + *b* = 0), de modo que os únicos mínimos de |*y*| são os seus zeros, as raízes. Como
-|*y*| = |*x* − *x*₁| |*x* − *x*₂|, perto de uma raiz simples a superfície é um cone de inclinação |*x*₁ − *x*₂|, e
-numa raiz dupla ela é tangente ao plano.
+|*y*| = |*x* − *x*<sub>+</sub>| |*x* − *x*<sub>−</sub>|, perto de uma raiz simples a superfície é um cone de inclinação
+|*x*<sub>+</sub> − *x*<sub>−</sub>|, e numa raiz dupla ela é tangente ao plano.
 
 Este é o polinômio característico da oscilação livre amortecida, *r*² + 2γ*r* + ω₀² = 0 (seção 3 das deduções de
 Osciladores), com *b* = 2γ e *c* = ω₀²: raízes complexas no caso subamortecido, raiz dupla no crítico e raízes
@@ -58,7 +58,7 @@ reais no superamortecido.
 
 | barra | segmentos e marcas |
 |---|---|
-| *b* | azul: raízes reais; laranja: raízes complexas, para \|*b*\| < 2√*c* (só se *c* > 0); marcas em 0 e em Δ = 0, isto é, em *b* = ∓2√*c* |
+| *b* | azul: raízes reais; laranja: raízes complexas, para \|*b*\| < 2√*c* (só se *c* > 0); marcas em 0 e em Δ = 0, isto é, em *b* = ±2√*c* |
 | *c* | azul: raízes reais; laranja: raízes complexas, para *c* > *b*²/4; marcas em 0 e em Δ = 0, isto é, em *c* = *b*²/4 |
 
 As marcas prendem o cursor da barra, para que o valor exato possa ser escolhido: em Δ = 0, a raiz dupla. Clicar
@@ -88,7 +88,7 @@ conter todas as raízes que as barras podem produzir: quem alargar as faixas das
 
 a partir da raiz do repositório. Precisa apenas do node. Os testes verificam, sobre uma grade de *b* e *c* que
 cobre as faixas das barras, que: as raízes anulam *y*, somam −*b* e têm produto *c*, e o seu tipo segue o sinal
-de Δ; |*y*| = |*x* − *x*₁| |*x* − *x*₂| em qualquer ponto do plano; *y* tem os valores acima sobre as duas retas
+de Δ; |*y*| = |*x* − *x*<sub>+</sub>| |*x* − *x*<sub>−</sub>| em qualquer ponto do plano; *y* tem os valores acima sobre as duas retas
 em que é real; a superfície tem o ponto de sela descrito; nos valores críticos a raiz é dupla e o vértice fica
 exatamente sobre o eixo; não aparece o sinal de um zero negativo; e raízes de tamanhos muito diferentes são
 calculadas sem perda de algarismos.

@@ -28,9 +28,9 @@
   const BOX = { u: [-4, 4], v: [-3.5, 3.5], zMax: 8, step: 0.25, height: 2.2 };
   /**
    * Where the surface is seen from when the page opens: azimuth and elevation, in degrees (see Camera in
-   * graficos.js).  Near a simple root the surface is a cone of slope |x1 - x2|, drawn with the slope
-   * |x1 - x2| height / zMax; seen from an elevation below that slope, a root can be hidden by the side of its
-   * own cone.  For complex roots |x1 - x2| = 2 sqrt(c - b^2/4) <= 4, and tan(48 deg) = 1.11 >= 4 x 2.2 / 8:
+   * graficos.js).  Near a simple root the surface is a cone of slope |x+ - x-|, drawn with the slope
+   * |x+ - x-| height / zMax; seen from an elevation below that slope, a root can be hidden by the side of its
+   * own cone.  For complex roots |x+ - x-| = 2 sqrt(c - b^2/4) <= 4, and tan(48 deg) = 1.11 >= 4 x 2.2 / 8:
    * from this elevation no complex root is hidden, whatever the azimuth.
    */
   const VIEW = { azimuth: -25, elevation: 48 };
@@ -119,7 +119,7 @@
 
   /** Polynomial, roots, vertex, legends and notes: everything written that depends on the model. */
   function formulas() {
-    const { b, c, roots, vertex } = model, polynomial = Fm.polynomial(b, c), r = Fm.roots(roots, vertex);
+    const { b, c, roots, vertex } = model, polynomial = Fm.polynomial(b, c), r = Fm.roots(b, roots, vertex);
     tex($('polSimbolico'), polynomial.symbolic);
     tex($('polNumerico'), polynomial.numeric);
     $('regime').textContent = r.regime;
@@ -127,7 +127,7 @@
     tex($('raizFormula'), r.formula);
     texList($('raizValores'), r.values);
     texList($('verticeValores'), Fm.vertex(vertex));
-    $('retaNota').textContent = r.note;
+    $('retaNota').innerHTML = r.note;
 
     // Legends follow what the plots show.
     $('legSela').hidden = roots.kind === 'double';
@@ -136,7 +136,7 @@
 
     // What the two plots show, in words, for those who cannot see them.
     $('folha').setAttribute('aria-label', 'Superfície do módulo de y sobre o plano complexo de x. Ela toca o plano em ' + r.spoken + '.');
-    $('reta').setAttribute('aria-label', 'Gráfico de y para x real. ' + r.note);
+    $('reta').setAttribute('aria-label', 'Gráfico de y para x real. ' + $('retaNota').textContent);
   }
 
   // ------------------------------------------------------------------------------------------ loop

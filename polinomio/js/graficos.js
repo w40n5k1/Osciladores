@@ -9,7 +9,7 @@
  *
  * The model is the object assembled by app.js:
  *   b, c       the coefficients
- *   roots      Polinomio.roots(b, c): {kind, delta, x1, x2}
+ *   roots      Polinomio.roots(b, c): {kind, delta, plus, minus}
  *   vertex     Polinomio.vertex(b, c): {x, y}
  *   box        what the plots show: {u, v, zMax, step, height}
  *                u, v     ranges [lower, upper] of Re x and Im x
@@ -84,9 +84,9 @@
   }
 
   /** The pieces of "x" with a subscript, for write(). */
-  const xSub = n => [['x', ITALIC], [String(n), SUBSCRIPT, 3]];
-  /** The pieces of the label of a root: "x1", "x2", or "x1 = x2" for a double root (n = 0). */
-  const rootLabel = n => (n ? xSub(n) : xSub(1).concat([[' = ', FONT]], xSub(2)));
+  const xSub = sign => [['x', ITALIC], [sign, SUBSCRIPT, 3]];
+  /** The pieces of the label of a root: "x+" or "x−" for sign '+' or '−', and "x+ = x−" for a double root (sign ''). */
+  const rootLabel = sign => (sign ? xSub(sign) : xSub('+').concat([[' = ', FONT]], xSub('−')));
 
   /**
    * A canvas with data coordinates: margins, ranges, axes and clipped polylines.
@@ -388,7 +388,7 @@
       // to the plane exactly there, wherever the root is in the cell.  (If both roots are in one cell, no point
       // of it is farther than its diagonal from either, and |y| is below 2 step^2 all over it: one is enough.)
       const tip = new Map();          // index of a cell -> [u, v, 0] of the root in it
-      for (const x of roots.kind === 'double' ? [roots.x1] : [roots.x1, roots.x2]) {
+      for (const x of roots.kind === 'double' ? [roots.plus] : [roots.plus, roots.minus]) {
         for (const [i, j] of cellsAt(x.re, x.im)) tip.set(j * nu + i, [x.re, x.im, 0]);
       }
 
@@ -482,9 +482,9 @@
       // The nodes of the mesh along a line and the points halfway between them: where a curve bends.
       const stopsAlong = (n, coordinate) => Array.from({ length: 2 * n + 1 }, (_, k) => (k % 2 ? (coordinate((k - 1) / 2) + coordinate((k + 1) / 2)) / 2 : coordinate(k / 2)));
       // Over the real axis, where |y| = |yv + (u - xv)^2|.
-      curve(t => [t, 0], stopsAlong(nu, U).concat(roots.kind === 'complex' ? [] : [roots.x1.re, roots.x2.re]), css('--serie-1'));
+      curve(t => [t, 0], stopsAlong(nu, U).concat(roots.kind === 'complex' ? [] : [roots.minus.re, roots.plus.re]), css('--serie-1'));
       // Over the line Re x = xv, where |y| = |yv - v^2|.
-      if (model.cut) curve(t => [vertex.x, t], stopsAlong(nv, V).concat(roots.kind === 'real' ? [] : [roots.x1.im, roots.x2.im]), css('--serie-2'));
+      if (model.cut) curve(t => [vertex.x, t], stopsAlong(nv, V).concat(roots.kind === 'real' ? [] : [roots.minus.im, roots.plus.im]), css('--serie-2'));
 
       ctx.lineJoin = 'round'; ctx.setLineDash([]);
       const columns = order(nu, towardsU);
@@ -541,11 +541,11 @@
 
       if (roots.kind !== 'double' && Math.abs(vertex.y) <= box.zMax) show(vertex.x, 0, Math.abs(vertex.y), q => ring(ctx, q[0], q[1], 3.5));
 
-      /** A root and its label, which goes (dx, dy) away from it. */
-      const root = (x, n, dx, dy) => show(x.re, x.im, 0, q => {
+      /** A root and its label (see `rootLabel`), which goes (dx, dy) away from it. */
+      const root = (x, sign, dx, dy) => show(x.re, x.im, 0, q => {
         disc(ctx, q[0], q[1], 4.5);
         ctx.fillStyle = css('--tinta');
-        write(ctx, rootLabel(n), q[0] + dx, q[1] + dy + 4, dx > 6 ? 'left' : dx < -6 ? 'right' : 'center', paper);
+        write(ctx, rootLabel(sign), q[0] + dx, q[1] + dy + 4, dx > 6 ? 'left' : dx < -6 ? 'right' : 'center', paper);
       });
       if (roots.kind === 'double') {
         // Both curves pass through the root: the label goes between them, on the side that is lowest on the screen.
@@ -555,17 +555,17 @@
           const d = [s * re[0] + t * im[0], s * re[1] + t * im[1]], length = Math.hypot(d[0], d[1]);
           if (length > 1e-6 && d[1] / length > lowest) { lowest = d[1] / length; best = [d[0] / length, d[1] / length]; }
         }
-        root(roots.x1, 0, 24 * best[0], 24 * best[1]);
+        root(roots.plus, '', 24 * best[0], 24 * best[1]);
         return;
       }
       // Each label goes to one side of the line through the two roots (the side that is lower on the screen,
       // clear of the curve that passes through them) and a little beyond its root, away from the other one.
-      const q1 = cam.pixel(roots.x1.re, roots.x1.im, 0), q2 = cam.pixel(roots.x2.re, roots.x2.im, 0);
-      const length = Math.hypot(q2[0] - q1[0], q2[1] - q1[1]);
-      const along = length > 1 ? [(q2[0] - q1[0]) / length, (q2[1] - q1[1]) / length] : [1, 0];
+      const from = cam.pixel(roots.minus.re, roots.minus.im, 0), to = cam.pixel(roots.plus.re, roots.plus.im, 0);
+      const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
+      const along = length > 1 ? [(to[0] - from[0]) / length, (to[1] - from[1]) / length] : [1, 0];      // from x− to x+
       const aside = along[0] > 0 ? [-along[1], along[0]] : [along[1], -along[0]];       // perpendicular, with y >= 0
-      root(roots.x1, 1, 13 * aside[0] - 10 * along[0], 13 * aside[1] - 10 * along[1]);
-      root(roots.x2, 2, 13 * aside[0] + 10 * along[0], 13 * aside[1] + 10 * along[1]);
+      root(roots.minus, '−', 13 * aside[0] - 10 * along[0], 13 * aside[1] - 10 * along[1]);
+      root(roots.plus, '+', 13 * aside[0] + 10 * along[0], 13 * aside[1] + 10 * along[1]);
     }
 
     /** Ticks and names of the three axes, outside the box. */
@@ -634,7 +634,7 @@
       const blue = css('--serie-1');
       // |y| where it differs from y: between the two real roots.
       if (roots.kind === 'real') {
-        const [xs, ys] = sample(roots.x1.re, roots.x2.re, 80, -1);
+        const [xs, ys] = sample(roots.minus.re, roots.plus.re, 80, -1);
         fr.line(ctx, xs, ys, 0, xs.length, { color: blue, width: 1.3, dash: [5, 4] });
       }
       const [xs, ys] = sample(fr.x[0], fr.x[1], 240, 1);
@@ -643,16 +643,16 @@
       // The vertex, and the zeros of y.
       ring(ctx, fr.X(vertex.x), fr.Y(vertex.y), 3.5);
       if (roots.kind !== 'complex') {
-        const mark = (x, n, align) => {
+        const mark = (x, sign, align) => {
           const px = fr.X(x), py = fr.Y(0);
           disc(ctx, px, py, 4.5);
           ctx.fillStyle = css('--tinta');
           // Below the axis, on the side of the root where the curve is above it; turned inwards at the edge of the plot.
           const room = align === 'right' ? px - fr.left : fr.right - px, side = room < 26 ? (align === 'right' ? 'left' : 'right') : align;
-          write(ctx, rootLabel(n), px + (side === 'center' ? 0 : side === 'right' ? -7 : 7), py + 17, side, css('--painel'));
+          write(ctx, rootLabel(sign), px + (side === 'center' ? 0 : side === 'right' ? -7 : 7), py + 17, side, css('--painel'));
         };
-        if (roots.kind === 'double') mark(roots.x1.re, 0, 'center');
-        else { mark(roots.x1.re, 1, 'right'); mark(roots.x2.re, 2, 'left'); }
+        if (roots.kind === 'double') mark(roots.plus.re, '', 'center');
+        else { mark(roots.minus.re, '−', 'right'); mark(roots.plus.re, '+', 'left'); }
       }
       ctx.restore();
     }
