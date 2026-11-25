@@ -1,0 +1,180 @@
+/* By Bruno Mota - METAbio */
+/*
+ * Style of the page: that of the Osciladores page, with what this page does not use left out.
+ * Every color is a custom property defined at the top, once for the light theme and once for the dark one;
+ * the plots (js/graficos.js) read the same properties, so a change here reaches them too.
+ * Layout: one row of three panels (coefficients and roots, the surface, the plot for x real).
+ */
+
+:root {
+  --fundo: #f4f3ef;        /* page */
+  --painel: #fcfcfb;       /* panels and plot surface */
+  --tinta: #0b0b0b;        /* text; roots */
+  --tinta-2: #52514e;      /* secondary text, axis labels */
+  --tinta-3: #8a8983;      /* hints */
+  --borda: #dcdad4;        /* borders; grid of the complex plane */
+  --grade: #ecebe6;        /* grid lines */
+  --eixo: #b9b7b0;         /* plot frame and zero lines; edges of the surface */
+  --trilho: #e2e0da;       /* slider bar */
+  --serie-1: #2a78d6;      /* y for x real, and the surface over the real axis; real roots */
+  --serie-2: #eb6834;      /* the surface over the line Re x = -b/2; complex roots */
+  --plano: #f6f5f1;        /* the complex plane, under the surface */
+  --folha-luz: #f3f2ee;    /* surface, lit */
+  --folha-sombra: #a5a39c; /* surface, in shade */
+  --malha: #4f4e49;        /* lines of the mesh of the surface */
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fundo: #121211; --painel: #1a1a19; --tinta: #f0efec; --tinta-2: #c3c2b7; --tinta-3: #8b8a82;
+    --borda: #34332f; --grade: #262624; --eixo: #55544e; --trilho: #34332f;
+    --serie-1: #3987e5; --serie-2: #d95926;
+    --plano: #1f1f1d; --folha-luz: #7b7a73; --folha-sombra: #302f2c; --malha: #0e0e0d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --fundo: #121211; --painel: #1a1a19; --tinta: #f0efec; --tinta-2: #c3c2b7; --tinta-3: #8b8a82;
+  --borda: #34332f; --grade: #262624; --eixo: #55544e; --trilho: #34332f;
+  --serie-1: #3987e5; --serie-2: #d95926;
+  --plano: #1f1f1d; --folha-luz: #7b7a73; --folha-sombra: #302f2c; --malha: #0e0e0d;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  padding-block: 14px 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--fundo);
+  color: var(--tinta);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+[hidden] { display: none !important; }
+h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { margin: 0 0 6px; font-size: 13px; font-weight: 650; }
+p { margin: 0; }
+a { color: var(--serie-1); }
+.dica { color: var(--tinta-2); font-size: 12.5px; }
+
+.cabecalho, main, .rodape { max-width: 1500px; margin-inline: auto; }
+.cabecalho { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; margin-bottom: 12px; }
+.cabecalho p { color: var(--tinta-2); font-size: 13px; }
+button {
+  font: inherit; color: var(--tinta); background: var(--painel);
+  border: 1px solid var(--borda); border-radius: 6px; padding: 5px 10px; cursor: pointer;
+}
+button:hover { border-color: var(--tinta-3); }
+:focus-visible { outline: 2px solid var(--serie-1); outline-offset: 2px; }
+
+main { display: grid; gap: 12px; }
+.painel { background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+
+/* The row of panels: coefficients and roots, the surface, the plot for x real. */
+.topo { display: grid; gap: 12px; grid-template-columns: 300px minmax(0, 1.25fr) minmax(0, 1fr); align-items: stretch; }
+.folha, .reta { display: flex; flex-direction: column; gap: 6px; }
+canvas { display: block; width: 100%; height: 300px; }
+.folha canvas, .reta canvas { flex: none; height: 460px; }       /* a fixed height: the plots do not move when the texts under them change */
+.folha canvas { cursor: grab; touch-action: none; border-radius: 6px; }
+.folha canvas:active { cursor: grabbing; }
+.titulo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.titulo button { padding: 1px 9px; font-size: 12.5px; color: var(--tinta-2); white-space: nowrap; flex: none; }
+.legenda label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--tinta-2); font-size: 12.5px; }
+input[type="checkbox"] { accent-color: var(--serie-1); margin: 0; }
+
+/* Legends. */
+.legenda { display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 0; padding: 0; list-style: none; color: var(--tinta-2); font-size: 12.5px; }
+.legenda li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.linha { display: inline-block; width: 20px; height: 0; border-top: 2px solid currentColor; }
+.linha.grossa { border-top-width: 3px; }
+.linha.tracejada { border-top-style: dashed; }
+.serie-1 { color: var(--serie-1); } .serie-2 { color: var(--serie-2); }
+.ponto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--tinta); }
+.ponto.cheio { background: var(--tinta); }
+.amostra { display: inline-block; width: 14px; height: 6px; border-radius: 3px; }
+.legenda .katex { font-size: 1.05em; }
+
+/* Controls: label, value, and a bar with colored segments and marks under the slider. */
+#controles { display: flex; flex-direction: column; gap: 5px; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { padding: 0; margin-bottom: 1px; color: var(--tinta-2); font-size: 11px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+.controle { padding-bottom: 1px; }
+.rotulo { display: flex; align-items: baseline; gap: 7px; line-height: 1.25; }
+.rotulo .simbolo { min-width: 20px; }
+.rotulo .nome { color: var(--tinta-2); font-size: 12.5px; }
+.rotulo .valor { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 13px; }
+.barra { position: relative; height: 25px; --botao: 16px; }
+.trilho, .marcas { position: absolute; left: calc(var(--botao) / 2); right: calc(var(--botao) / 2); }
+.trilho { bottom: 5px; height: 6px; border-radius: 3px; background: var(--trilho); overflow: hidden; }
+.segmento { position: absolute; top: 0; bottom: 0; }
+.reais { background: var(--serie-1); } .complexas { background: var(--serie-2); }
+.marcas { top: 0; bottom: 0; pointer-events: none; }
+.marca { position: absolute; bottom: 1px; width: 2px; height: 13px; margin-left: -1px; background: var(--tinta); }
+.marca.fina { width: 1px; margin-left: -0.5px; }
+.marca span {
+  position: absolute; bottom: 13px; left: 50%; transform: translateX(-50%);
+  font-style: normal; font-size: 10.5px; line-height: 1; white-space: nowrap; color: var(--tinta-2);
+  padding: 1px 3px; cursor: pointer; pointer-events: auto;
+}
+.marca span:hover { color: var(--tinta); text-decoration: underline; }
+.marca.esquerda span { left: -3px; transform: none; }
+.marca.direita span { left: auto; right: -3px; transform: none; }
+
+.barra input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  position: absolute; left: 0; bottom: 0; width: 100%; height: var(--botao); margin: 0; padding: 0;
+  background: transparent; cursor: pointer;
+}
+.barra input[type="range"]::-webkit-slider-runnable-track { height: var(--botao); background: transparent; }
+.barra input[type="range"]::-moz-range-track { height: var(--botao); background: transparent; }
+.barra input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: var(--botao); height: var(--botao); border-radius: 50%;
+  background: var(--painel); border: 2px solid var(--tinta); box-shadow: 0 0 0 2px var(--painel);
+}
+.barra input[type="range"]::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--painel); border: 2px solid var(--tinta); box-shadow: 0 0 0 2px var(--painel);
+}
+/* Caption of a group of bars: what the colors of their segments mean. */
+.legenda.do-grupo { gap: 2px 12px; margin: 1px 0 3px; font-size: 11.5px; }
+.legenda.do-grupo li { white-space: normal; }
+
+/* Polynomial, roots and vertex, under the controls. */
+.formulas { min-width: 0; display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--borda); }
+.formulas h2 { margin-bottom: 0; }
+.formulas h2:not(:first-child) { margin-top: 10px; }
+.formula { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+.formula .katex-display { margin: 0; text-align: left; }
+.formula .katex-display > .katex { text-align: left; }
+.formula .katex { font-size: 1.25em; }
+.formula.menor .katex { font-size: 1.05em; }
+.formula.menor { color: var(--tinta-2); }
+.lista { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.lista:empty, .formula:empty { display: none; }
+.lista .katex { font-size: 1.02em; }
+.etiqueta {
+  display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 999px; vertical-align: 1px;
+  border: 1px solid var(--borda); color: var(--tinta-2); font-size: 12px; font-weight: 500;
+}
+.etiqueta::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--tinta-3); }
+.etiqueta[data-regime="real"]::before { background: var(--serie-1); }
+.etiqueta[data-regime="complex"]::before { background: var(--serie-2); }
+.etiqueta[data-regime="double"]::before { background: var(--tinta); }
+
+.rodape { margin-top: 14px; color: var(--tinta-3); font-size: 12px; }
+.rodape a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.rodape a:hover { color: var(--tinta-2); }
+
+/* Narrower screens: the plot for x real goes under the surface, then everything in one column. */
+@media (max-width: 1180px) {
+  .topo { grid-template-columns: 290px minmax(0, 1fr); }
+  .reta { grid-column: 1 / -1; }
+  .reta canvas { height: 320px; }
+}
+@media (max-width: 760px) {
+  .topo { grid-template-columns: minmax(0, 1fr); }
+  .folha canvas { height: min(84vw, 460px); }
+  h1 { font-size: 18px; }
+}

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- By Bruno Mota - METAbio -->
+<title>Polinômio de 2º grau</title>
+<link rel="stylesheet" href="../vendor/katex/katex.min.css">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="cabecalho">
+  <div>
+    <h1>Polinômio de 2º grau no plano complexo</h1>
+    <p>O módulo de <span class="m">y = x^2 + bx + c</span> sobre o plano complexo de <span class="m">x</span>, e <span class="m">y</span> para <span class="m">x</span> real · Mecânica e Termodinâmica, IMPA Tech</p>
+  </div>
+</header>
+
+<main>
+  <div class="topo">
+
+    <aside class="painel controles" aria-label="Coeficientes e raízes">
+      <div id="controles"></div>
+      <div class="formulas">
+        <h2>Polinômio</h2>
+        <div class="formula" id="polSimbolico"></div>
+        <div class="formula menor" id="polNumerico"></div>
+        <h2>Raízes <span class="etiqueta" id="regime"></span></h2>
+        <div class="formula" id="raizFormula"></div>
+        <div class="lista" id="raizValores"></div>
+        <h2>Vértice</h2>
+        <div class="lista" id="verticeValores"></div>
+      </div>
+    </aside>
+
+    <section class="painel folha" aria-label="Módulo de y sobre o plano complexo">
+      <div class="titulo">
+        <h2>Módulo <span class="m">|y|</span> sobre o plano complexo de <span class="m">x</span></h2>
+        <button type="button" id="vistaInicial">vista inicial</button>
+      </div>
+      <canvas id="folha" tabindex="0" role="img" aria-label="Superfície do módulo de y sobre o plano complexo"></canvas>
+      <ul class="legenda">
+        <li><i class="ponto cheio"></i>raiz: a superfície toca o plano</li>
+        <li id="legSela"><i class="ponto"></i><span>ponto de sela, sobre <span class="m">x = -b/2</span></span></li>
+        <li><i class="linha grossa serie-1"></i><span>sobre o eixo real: <span class="m">|y|</span> para <span class="m">x</span> real</span></li>
+        <li><label><input type="checkbox" id="corte" checked><i class="linha grossa serie-2"></i><span>sobre a reta <span class="m">\operatorname{Re}x = -b/2</span></span></label></li>
+      </ul>
+      <p class="dica">A altura da superfície sobre cada ponto <span class="m">x</span> do plano complexo é <span class="m">|y|</span>, mostrada até <span id="alturaMaxima"></span>. Ela só se anula nas raízes: é aí que a superfície toca o plano. Arraste para girar, ou use as setas do teclado. Onde é vista por baixo, a superfície aparece quase transparente; um ponto encoberto por ela aparece esmaecido.</p>
+    </section>
+
+    <aside class="painel reta" aria-label="y para x real">
+      <h2><span class="m">y</span> para <span class="m">x</span> real</h2>
+      <canvas id="reta" role="img" aria-label="Gráfico de y para x real"></canvas>
+      <ul class="legenda">
+        <li><i class="linha grossa serie-1"></i><span class="m">y = x^2 + bx + c</span></li>
+        <li id="legModulo"><i class="linha tracejada serie-1"></i><span><span class="m">|y|</span>, onde <span class="m">y \lt 0</span></span></li>
+        <li id="legZero"><i class="ponto cheio"></i><span>raiz real: <span class="m">y = 0</span></span></li>
+        <li><i class="ponto"></i>vértice</li>
+      </ul>
+      <p class="dica" id="retaNota"></p>
+      <p class="dica">A curva azul da superfície é esta parábola, em módulo: o corte da superfície sobre o eixo real.</p>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="rodape">
+  <p>Bruno Mota · <a href="https://metabio.netlify.app/" target="_blank" rel="noopener">metaBIO</a>, Instituto de Física, UFRJ.</p>
+</footer>
+
+<script src="../vendor/katex/katex.min.js"></script>
+<script src="js/polinomio.js"></script>
+<script src="js/formulas.js"></script>
+<script src="js/controles.js"></script>
+<script src="js/graficos.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
