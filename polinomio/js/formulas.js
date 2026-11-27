@@ -4,7 +4,7 @@
  * the number formatting used everywhere in the page (decimal comma, three significant figures).
  *
  *   polynomial(b, c)        {symbolic, numeric}: y = x^2 + b x + c, and the same with the values of b and c
- *   roots(b, r, v)          {regime, formula, values, spoken, note}: the roots x+ and x-, for display
+ *   roots(b, c, r, v)       {regime, formula, values, spoken, note}: the roots x+ and x-, for display
  *   vertex(v)               LaTeX of the coordinates of the vertex
  *   tex(v), text(v), fixed(v, decimals)     a number as LaTeX and as plain text
  *
@@ -81,11 +81,12 @@
   /**
    * The roots x+ and x- in terms of b and of the discriminant, as LaTeX: (-b +- sqrt(D)) / 2, with i sqrt(-D)
    * in the place of sqrt(D) when D < 0, so that what is under the root is positive.  With b = 0 the term -b is
-   * left out.
+   * left out.  With c = 0 the discriminant is b^2 and its root is written |b|: the modulus keeps x+ the larger
+   * root when b < 0.
    */
-  function formula(kind, b) {
+  function formula(kind, b, c) {
     if (kind === 'double') return 'x_+ = x_- = ' + (b === 0 ? '0' : '-\\dfrac{b}{2}');
-    const root = kind === 'real' ? '\\sqrt{\\Delta}' : 'i\\sqrt{-\\Delta}';
+    const root = kind === 'complex' ? 'i\\sqrt{-\\Delta}' : c === 0 ? '|b|' : '\\sqrt{\\Delta}';
     return 'x_\\pm = \\dfrac{' + (b === 0 ? '' : '-b ') + '\\pm ' + root + '}{2}';
   }
 
@@ -98,15 +99,15 @@
   }
 
   /**
-   * The roots, for display.  b is the coefficient, r = Polinomio.roots(b, c) and v = Polinomio.vertex(b, c).
+   * The roots, for display.  b and c are the coefficients, r = Polinomio.roots(b, c) and v = Polinomio.vertex(b, c).
    *   regime     name of the case, shown beside the title
    *   formula    the roots in LaTeX, in terms of b and the discriminant (see `formula`)
    *   values     LaTeX of the discriminant and of the roots
    *   spoken     the roots in plain text
    *   note       a sentence in Portuguese (HTML) shown under the plot of y for x real: where y vanishes there
    */
-  function roots(b, r, v) {
-    const out = { regime: REGIME_NAME[r.kind], formula: formula(r.kind, b), values: ['\\Delta = b^2 - 4c = ' + tex(r.delta)], spoken: '', note: '' };
+  function roots(b, c, r, v) {
+    const out = { regime: REGIME_NAME[r.kind], formula: formula(r.kind, b, c), values: ['\\Delta = b^2 - 4c = ' + tex(r.delta)], spoken: '', note: '' };
     const plus = 'x<sub>+</sub>', minus = 'x<sub>−</sub>';
     if (r.kind === 'double') {
       if (b !== 0) out.values.push('x_+ = x_- = ' + complex(r.plus));           // with b = 0 the formula already reads 0
