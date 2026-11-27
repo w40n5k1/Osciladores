@@ -4,7 +4,7 @@
  * the number formatting used everywhere in the page (decimal comma, three significant figures).
  *
  *   polynomial(b, c)        {symbolic, numeric}: y = x^2 + b x + c, and the same with the values of b and c
- *   roots(r, v)             {regime, formula, values, spoken, note}: the roots, for display
+ *   roots(b, r, v)          {regime, formula, values, spoken, note}: the roots x+ and x-, for display
  *   vertex(v)               LaTeX of the coordinates of the vertex
  *   tex(v), text(v), fixed(v, decimals)     a number as LaTeX and as plain text
  *
@@ -78,11 +78,16 @@
     complex: 'complexas conjugadas',
   };
 
-  const FORMULA = {
-    real: 'x_{1,2} = \\dfrac{-b \\mp \\sqrt{\\Delta}}{2}',
-    double: 'x_1 = x_2 = -\\dfrac{b}{2}',
-    complex: 'x_{1,2} = \\dfrac{-b \\mp i\\sqrt{-\\Delta}}{2}',
-  };
+  /**
+   * The roots x+ and x- in terms of b and of the discriminant, as LaTeX: (-b +- sqrt(D)) / 2, with i sqrt(-D)
+   * in the place of sqrt(D) when D < 0, so that what is under the root is positive.  With b = 0 the term -b is
+   * left out.
+   */
+  function formula(kind, b) {
+    if (kind === 'double') return 'x_+ = x_- = ' + (b === 0 ? '0' : '-\\dfrac{b}{2}');
+    const root = kind === 'real' ? '\\sqrt{\\Delta}' : 'i\\sqrt{-\\Delta}';
+    return 'x_\\pm = \\dfrac{' + (b === 0 ? '' : '-b ') + '\\pm ' + root + '}{2}';
+  }
 
   /** A complex number {re, im} as plain text, like complex(). */
   function complexText(z) {
@@ -93,24 +98,25 @@
   }
 
   /**
-   * The roots, for display.
+   * The roots, for display.  b is the coefficient, r = Polinomio.roots(b, c) and v = Polinomio.vertex(b, c).
    *   regime     name of the case, shown beside the title
-   *   formula    the roots in LaTeX, in terms of b and the discriminant
+   *   formula    the roots in LaTeX, in terms of b and the discriminant (see `formula`)
    *   values     LaTeX of the discriminant and of the roots
    *   spoken     the roots in plain text
-   *   note       a sentence in Portuguese shown under the plot of y for x real: where y vanishes there
+   *   note       a sentence in Portuguese (HTML) shown under the plot of y for x real: where y vanishes there
    */
-  function roots(r, v) {
-    const out = { regime: REGIME_NAME[r.kind], formula: FORMULA[r.kind], values: ['\\Delta = b^2 - 4c = ' + tex(r.delta)], spoken: '', note: '' };
+  function roots(b, r, v) {
+    const out = { regime: REGIME_NAME[r.kind], formula: formula(r.kind, b), values: ['\\Delta = b^2 - 4c = ' + tex(r.delta)], spoken: '', note: '' };
+    const plus = 'x<sub>+</sub>', minus = 'x<sub>−</sub>';
     if (r.kind === 'double') {
-      out.values.push('x_1 = x_2 = ' + complex(r.x1));
-      out.spoken = 'x₁ = x₂ = ' + complexText(r.x1);
-      out.note = 'y = 0 só em ' + out.spoken + ': a parábola é tangente ao eixo.';
+      if (b !== 0) out.values.push('x_+ = x_- = ' + complex(r.plus));           // with b = 0 the formula already reads 0
+      out.spoken = 'x+ = x− = ' + complexText(r.plus);
+      out.note = 'y = 0 só em ' + plus + ' = ' + minus + ' = ' + complexText(r.plus) + ': a parábola é tangente ao eixo.';
     } else {
-      out.values.push('x_1 = ' + complex(r.x1), 'x_2 = ' + complex(r.x2));
-      out.spoken = 'x₁ = ' + complexText(r.x1) + ' e em x₂ = ' + complexText(r.x2);
+      out.values.push('x_+ = ' + complex(r.plus), 'x_- = ' + complex(r.minus));
+      out.spoken = 'x− = ' + complexText(r.minus) + ' e em x+ = ' + complexText(r.plus);
       out.note = r.kind === 'real'
-        ? 'y = 0 em ' + out.spoken + '.'
+        ? 'y = 0 em ' + minus + ' = ' + complexText(r.minus) + ' e em ' + plus + ' = ' + complexText(r.plus) + '.'
         : 'y não se anula para x real: seu menor valor é c − b²/4 = ' + text(v.y) + '. As duas raízes estão fora do eixo real.';
     }
     return out;

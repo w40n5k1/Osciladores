@@ -8,12 +8,12 @@
  *
  *     y = (x - xv)^2 + yv ,         xv = -b/2 ,     yv = c - b^2/4 = -D/4 ,     D = b^2 - 4c ,
  *
- * where D is the discriminant and (xv, yv) is the vertex of the parabola y(x) for x real.  The roots are
- * x = xv -+ sqrt(-yv):
+ * where D is the discriminant and (xv, yv) is the vertex of the parabola y(x) for x real.  The two roots,
+ * x+ and x-, are (-b +- sqrt(D)) / 2 = xv +- sqrt(-yv):
  *
- *     D > 0    two real roots,              xv -+ sqrt(D)/2
+ *     D > 0    two real roots,              xv +- sqrt(D)/2
  *     D = 0    one double root,             xv
- *     D < 0    two complex conjugate roots, xv -+ i sqrt(-D)/2
+ *     D < 0    two complex conjugate roots, xv +- i sqrt(-D)/2
  *
  * With x = u + i v and s = u - xv,
  *
@@ -76,24 +76,24 @@
   }
 
   /**
-   * The two roots, as complex numbers {re, im}:
-   *   kind     'real' (two distinct real roots, x1 < x2), 'double' (x1 = x2), or
-   *            'complex' (a conjugate pair, Im x1 < 0 < Im x2)
-   *   delta    the discriminant (see `discriminant`)
-   *   x1, x2   the roots
+   * The two roots, x+ and x- = (-b +- sqrt(D)) / 2, as complex numbers {re, im}:
+   *   kind          'real' (two distinct real roots, x- < x+), 'double' (x- = x+), or
+   *                 'complex' (a conjugate pair, Im x- < 0 < Im x+)
+   *   delta         the discriminant (see `discriminant`)
+   *   plus, minus   the roots x+ and x-
    *
    * Real roots are computed without subtracting nearly equal numbers: the root of larger modulus is
    * q = -(b + sign(b) sqrt(D)) / 2, and the other is c / q, since the product of the roots is c.
    */
   function roots(b, c) {
     const D = discriminant(b, c), xv = plain(-b / 2);
-    if (D === 0) return { kind: 'double', delta: 0, x1: { re: xv, im: 0 }, x2: { re: xv, im: 0 } };
+    if (D === 0) return { kind: 'double', delta: 0, plus: { re: xv, im: 0 }, minus: { re: xv, im: 0 } };
     if (D > 0) {
       const q = -(b + (b < 0 ? -1 : 1) * Math.sqrt(D)) / 2, other = plain(c / q);
-      return { kind: 'real', delta: D, x1: { re: Math.min(q, other), im: 0 }, x2: { re: Math.max(q, other), im: 0 } };
+      return { kind: 'real', delta: D, plus: { re: Math.max(q, other), im: 0 }, minus: { re: Math.min(q, other), im: 0 } };
     }
     const half = Math.sqrt(-D) / 2;
-    return { kind: 'complex', delta: D, x1: { re: xv, im: -half }, x2: { re: xv, im: half } };
+    return { kind: 'complex', delta: D, plus: { re: xv, im: half }, minus: { re: xv, im: -half } };
   }
 
   /** |b| at which the discriminant vanishes for a given c: 2 sqrt(c); null if c < 0 (the roots are real for every b). */

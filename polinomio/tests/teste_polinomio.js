@@ -21,20 +21,20 @@ for (let b = -4; b <= 4 + 1e-9; b += 0.25) for (let c = -4; c <= 6 + 1e-9; c += 
 // 1. The roots are roots; their sum is -b and their product is c (Vieta); their kind follows the discriminant.
 for (const [b, c] of grid) {
   const r = P.roots(b, c), D = b * b - 4 * c, tag = `b = ${b}, c = ${c}`;
-  for (const x of [r.x1, r.x2]) close(P.modulus(b, c, x.re, x.im), 0, 1e-12, `|y| at a root (${tag})`);
-  close(r.x1.re + r.x2.re, -b, 1e-12, `sum of the roots, real part (${tag})`);
-  close(r.x1.im + r.x2.im, 0, 0, `sum of the roots, imaginary part (${tag})`);
-  close(r.x1.re * r.x2.re - r.x1.im * r.x2.im, c, 1e-12, `product of the roots (${tag})`);
+  for (const x of [r.minus, r.plus]) close(P.modulus(b, c, x.re, x.im), 0, 1e-12, `|y| at a root (${tag})`);
+  close(r.minus.re + r.plus.re, -b, 1e-12, `sum of the roots, real part (${tag})`);
+  close(r.minus.im + r.plus.im, 0, 0, `sum of the roots, imaginary part (${tag})`);
+  close(r.minus.re * r.plus.re - r.minus.im * r.plus.im, c, 1e-12, `product of the roots (${tag})`);
   assert.strictEqual(r.kind, D > 0 ? 'real' : D < 0 ? 'complex' : 'double', `kind (${tag})`); checks++;
-  if (r.kind === 'real') { assert.ok(r.x1.re < r.x2.re, `order of the real roots (${tag})`); checks++; }
-  if (r.kind === 'complex') { assert.ok(r.x1.im < 0 && r.x2.im > 0, `order of the complex roots (${tag})`); checks++; }
+  if (r.kind === 'real') { assert.ok(r.minus.re < r.plus.re, `order of the real roots (${tag})`); checks++; }
+  if (r.kind === 'complex') { assert.ok(r.minus.im < 0 && r.plus.im > 0, `order of the complex roots (${tag})`); checks++; }
 }
 
-// 2. |y| = |x - x1| |x - x2| at any point of the plane.
+// 2. |y| = |x - x+| |x - x-| at any point of the plane.
 for (const [b, c] of grid) {
   const r = P.roots(b, c);
   for (const [u, v] of [[0.3, -1.7], [-4.1, 2.2], [2.5, 0], [-0.5 * b, 1.1]]) {
-    const product = Math.hypot(u - r.x1.re, v - r.x1.im) * Math.hypot(u - r.x2.re, v - r.x2.im);
+    const product = Math.hypot(u - r.minus.re, v - r.minus.im) * Math.hypot(u - r.plus.re, v - r.plus.im);
     close(P.modulus(b, c, u, v), product, 1e-11 * (1 + product), `factorization at ${u} + ${v} i (b = ${b}, c = ${c})`);
   }
 }
@@ -69,7 +69,7 @@ for (const [b, c] of critical) {
   const r = P.roots(b, c), tag = `b = ${b}, c = ${c}`;
   assert.strictEqual(r.kind, 'double', `double root (${tag})`); checks++;
   close(P.discriminant(b, c), 0, 0, `discriminant (${tag})`); close(r.delta, 0, 0, `delta of the roots (${tag})`);
-  close(r.x1.re, -b / 2, 0, `position of the double root (${tag})`); close(r.x2.re, -b / 2, 0, `second copy of the double root (${tag})`);
+  close(r.minus.re, -b / 2, 0, `position of the double root (${tag})`); close(r.plus.re, -b / 2, 0, `second copy of the double root (${tag})`);
   close(P.vertex(b, c).y, 0, 0, `height of the vertex (${tag})`);
 }
 assert.strictEqual(P.criticalB(-1), null); checks++;
@@ -81,13 +81,13 @@ for (const [b, c] of grid) {
 // 6. No sign on a zero: -0 would be written "-0".
 for (const [b, c] of [[0, 0], [0, 1], [0, -1], [2, 0], [-2, 0]]) {
   const r = P.roots(b, c);
-  for (const part of [r.x1.re, r.x2.re, P.vertex(b, c).x, P.vertex(b, c).y]) { assert.ok(!Object.is(part, -0), `-0 for b = ${b}, c = ${c}`); checks++; }
+  for (const part of [r.minus.re, r.plus.re, P.vertex(b, c).x, P.vertex(b, c).y]) { assert.ok(!Object.is(part, -0), `-0 for b = ${b}, c = ${c}`); checks++; }
 }
 
 // 7. No loss of digits when the roots have very different sizes: x^2 + 1e8 x + 1 has the roots -1e8 and -1e-8.
 {
   const r = P.roots(1e8, 1);
-  close(r.x1.re, -1e8, 1e-7, 'large root'); close(r.x2.re / -1e-8, 1, 1e-15, 'small root, relative');
+  close(r.minus.re, -1e8, 1e-7, 'large root'); close(r.plus.re / -1e-8, 1, 1e-15, 'small root, relative');
 }
 
 console.log(`teste_polinomio: ${checks} checks passed`);
