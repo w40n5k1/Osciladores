@@ -119,7 +119,7 @@
 
   /** Polynomial, roots, vertex, legends and notes: everything written that depends on the model. */
   function formulas() {
-    const { b, c, roots, vertex } = model, polynomial = Fm.polynomial(b, c), r = Fm.roots(b, roots, vertex);
+    const { b, c, roots, vertex } = model, polynomial = Fm.polynomial(b, c), r = Fm.roots(b, c, roots, vertex);
     tex($('polSimbolico'), polynomial.symbolic);
     tex($('polNumerico'), polynomial.numeric);
     $('regime').textContent = r.regime;
